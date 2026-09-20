@@ -1,46 +1,51 @@
+// NotificadorEspia.java  (en src/test/java)
 package es.uib.prgava.tema1.monitor;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Ejercicio 1.4.3. <strong>Solución comentada.</strong> Doble de prueba del tipo <em>espía</em>
- * (<em>spy</em>): guarda en orden las alertas recibidas.
+ * Ejercicio 1.4.3. El otro doble: un notificador que en lugar de imprimir <strong>guarda</strong>,
+ * para que la prueba pueda examinar lo que recibió.
  *
- * <p>Vocabulario de dobles, que conviene no mezclar (Meszaros):
- * <ul>
- *   <li><em>dummy</em>: se pasa para rellenar un parámetro y nunca se usa;</li>
- *   <li><em>stub</em>: devuelve respuestas preparadas — es {@link SondaProgramada};</li>
- *   <li><em>spy</em>: además de responder, <strong>registra</strong> cómo se le ha llamado, para
- *       que la prueba pueda comprobarlo después — es esta clase;</li>
- *   <li><em>fake</em>: implementación de verdad pero simplificada, como un repositorio en memoria
- *       en lugar de una base de datos;</li>
- *   <li><em>mock</em>: espera por adelantado unas llamadas concretas y falla si no ocurren.</li>
- * </ul>
+ * <p>Y aquí está la respuesta al «Para pensar» del enunciado —si esto es una implementación de
+ * {@code Notificador} de pleno derecho o una trampa para probar—: es de pleno derecho, y la prueba
+ * de que lo es está en el propio monitor. {@link NotificadorRegistro}, en {@code src/main/java}, hace
+ * exactamente esto, y no se escribió para probar nada: se escribió porque los informes necesitan
+ * saber qué alertas se emitieron.
  *
- * <p>Escribirlos a mano, en vez de con una biblioteca como Mockito, tiene una ventaja didáctica:
- * se ve que un doble no es magia, es una clase de veinte líneas que implementa la interfaz. Y una
- * ventaja práctica: una prueba en la que el doble es difícil de escribir suele estar avisando de
- * que la interfaz que hay debajo es demasiado grande.
+ * <p>Esa coincidencia dice algo sobre el diseño. Cuando un doble de prueba resulta ser una
+ * implementación razonable del sistema real, es señal de que la interfaz está bien planteada: pide lo
+ * justo. Los dobles que hay que retorcer —los que tienen que fingir estado interno, o adivinar en qué
+ * orden se les va a llamar— suelen estar denunciando una interfaz que pide demasiado.
+ *
+ * <p>La diferencia con {@code NotificadorRegistro} es lo que añade para la prueba: contar por
+ * servicio, que es lo que interesa comprobar y no tendría sentido en el programa.
  */
-public final class NotificadorEspia implements Notificador {
+final class NotificadorEspia implements Notificador {
 
-    private final List<Alerta> alertas = new ArrayList<>();
+    private final List<Alerta> recibidas = new ArrayList<>();
 
     @Override
     public void notificar(Alerta alerta) {
-        // Una lista, y no un contador: guardar las alertas enteras permite comprobar también
-        // QUÉ llegó y EN QUÉ ORDEN, no solo cuántas. Un doble que registra de menos obliga a
-        // reescribirlo en cuanto la prueba siguiente quiere afinar más.
-        alertas.add(alerta);
+        recibidas.add(alerta);
     }
 
-    /** Alertas recibidas, en orden, como lista inmutable. */
-    public List<Alerta> alertas() {
-        return List.copyOf(alertas);
+    List<Alerta> recibidas() {
+        return List.copyOf(recibidas);
     }
 
-    public int cuantas() {
-        return alertas.size();
+    int cuantas() {
+        return recibidas.size();
+    }
+
+    int cuantasDe(Servicio servicio) {
+        int cuantas = 0;
+        for (var alerta : recibidas) {
+            if (alerta.servicio().equals(servicio)) {
+                cuantas++;
+            }
+        }
+        return cuantas;
     }
 }

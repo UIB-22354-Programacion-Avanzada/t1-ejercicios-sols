@@ -5,55 +5,51 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import es.uib.prgava.tema1.monitor.Servicio;
+import es.uib.prgava.tema1.monitor.ServicioDns;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/** Ejercicio 1.3.3. */
+/**
+ * Ejercicio 1.3.3. <strong>Solución comentada.</strong> Aquí lo que se comprueba, antes que ningún
+ * resultado, es que el código <em>compile</em>.
+ */
 class CopiasEjercicioTest {
 
     @Test
-    void copiarSiFiltraYCuenta() {
-        List<Integer> destino = new ArrayList<>();
-
-        int copiados = CopiasEjercicio.copiarSi(List.of(1, 2, 3, 4), destino, n -> n % 2 == 0);
-
-        assertEquals(2, copiados);
-        assertEquals(List.of(2, 4), destino);
+    void copiaEntreListasDelMismoTipo() {
+        var origen = new ArrayList<Servicio>(List.of(Datos.WEB, Datos.DNS));
+        var destino = new ArrayList<Servicio>();
+        CopiasEjercicio.copiarTodo(origen, destino);
+        assertEquals(2, destino.size());
+        assertEquals(Datos.WEB, destino.get(0));
     }
 
     @Test
-    void copiarSiAdmiteUnDestinoDeUnSupertipo() {
-        List<Object> destino = new ArrayList<>();
-
-        CopiasEjercicio.copiarSi(Datos.historialDeEjemplo(), destino, r -> r.esFallo());
-
-        assertEquals(3, destino.size());
+    void elDestinoConservaLoQueYaTenia() {
+        var destino = new ArrayList<Servicio>(List.of(Datos.DNS));
+        CopiasEjercicio.copiarTodo(new ArrayList<Servicio>(List.of(Datos.WEB)), destino);
+        assertEquals(2, destino.size());
     }
 
-    /**
-     * Ejercicio 1.3.3: esta prueba venía comentada y se descomenta al corregir las firmas de
-     * {@code fusionar}. Con la firma original —{@code fusionar(List<T>, List<T>, List<T>)}— no
-     * compilaba, porque exigía que las tres listas fueran del mismo tipo exacto y aquí son
-     * Integer, Double y Number.
-     */
+    // Las dos pruebas que en la plantilla estaban comentadas, porque con la firma de partida no
+    // compilaban. Que ahora compilen ES el resultado del ejercicio: aquí no se comprueba un valor,
+    // se comprueba que el compilador acepta la llamada.
+
     @Test
-    void fusionarAdmiteListasDeSubtiposEnUnDestinoDeSupertipo() {
-        List<Integer> enteros = List.of(1, 2);
-        List<Double> reales = List.of(3.0);
-        List<Number> destino = new ArrayList<>();
-
-        CopiasEjercicio.fusionar(enteros, reales, destino);
-
-        assertEquals(3, destino.size());
+    void copiaDesdeUnaListaDeUnSubtipo() {
+        // List<ServicioDns> no es un subtipo de List<Servicio>; con `? extends Servicio` sí encaja.
+        var origen = new ArrayList<ServicioDns>(List.of(new ServicioDns("uib.es")));
+        var destino = new ArrayList<Servicio>();
+        CopiasEjercicio.copiarTodo(origen, destino);
+        assertEquals(1, destino.size());
     }
 
     @Test
-    void fusionarAdmiteUnDestinoMuchoMasGeneral() {
-        List<Integer> unos = List.of(1);
-        List<Integer> dos = List.of(2);
-        List<Object> destino = new ArrayList<>();
-
-        CopiasEjercicio.fusionar(unos, dos, destino);
-
-        assertEquals(List.of(1, 2), destino);
+    void copiaHaciaUnaListaDeUnSupertipo() {
+        // Donde caben Objects cabe un Servicio; con `? super Servicio` el compilador lo sabe.
+        var destino = new ArrayList<Object>();
+        CopiasEjercicio.copiarTodo(new ArrayList<Servicio>(List.of(Datos.WEB)), destino);
+        assertEquals(1, destino.size());
     }
 }

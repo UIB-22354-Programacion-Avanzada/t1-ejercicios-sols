@@ -1,45 +1,55 @@
 package es.uib.prgava.tema1.ejercicios;
 
-import java.util.HashMap;
 import java.util.HashSet;
 
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Ejercicio 1.1.3. Estas pruebas fallan hasta que Etiqueta redefine hashCode. */
+/** Ejercicio 1.1.3: el contrato completo de equals y hashCode. */
 class EtiquetaTest {
 
+    private static final Etiqueta UNA = new Etiqueta("rack-3", "rojo");
+    private static final Etiqueta IGUAL = new Etiqueta("rack-3", "rojo");
+    private static final Etiqueta OTRA = new Etiqueta("rack-3", "azul");
+
     @Test
-    void dosEtiquetasIgualesTienenElMismoCodigoHash() {
-        assertEquals(new Etiqueta("entorno", "produccion").hashCode(),
-                     new Etiqueta("entorno", "produccion").hashCode());
+    void dosEtiquetasIgualesCompartenCodigoDeResumen() {
+        assertEquals(UNA, IGUAL);
+        assertEquals(UNA.hashCode(), IGUAL.hashCode());
     }
 
     @Test
-    void unConjuntoEncuentraUnaEtiquetaIgual() {
-        var conjunto = new HashSet<Etiqueta>();
-        conjunto.add(new Etiqueta("entorno", "produccion"));
-
-        assertTrue(conjunto.contains(new Etiqueta("entorno", "produccion")));
+    void elColorCuentaParaLaIgualdad() {
+        assertFalse(UNA.equals(OTRA));
     }
 
     @Test
-    void unConjuntoNoAdmiteEtiquetasDuplicadas() {
+    void esReflexivoSimetricoYTransitivo() {
+        assertTrue(UNA.equals(UNA));
+        assertEquals(UNA.equals(IGUAL), IGUAL.equals(UNA));
+        var tercera = new Etiqueta("rack-3", "rojo");
+        assertTrue(UNA.equals(IGUAL) && IGUAL.equals(tercera) && UNA.equals(tercera));
+    }
+
+    @Test
+    void compararConNullDevuelveFalseYNoRevienta() {
+        assertFalse(UNA.equals(null));
+    }
+
+    @Test
+    void compararConOtroTipoDevuelveFalseYNoRevienta() {
+        assertFalse(UNA.equals("rack-3"));
+    }
+
+    @Test
+    void funcionaComoElementoDeUnConjuntoHash() {
         var conjunto = new HashSet<Etiqueta>();
-
-        conjunto.add(new Etiqueta("zona", "aulario"));
-        conjunto.add(new Etiqueta("zona", "aulario"));
-
+        conjunto.add(UNA);
+        assertTrue(conjunto.contains(IGUAL));
+        conjunto.add(IGUAL);
         assertEquals(1, conjunto.size());
-    }
-
-    @Test
-    void unMapaRecuperaElValorConUnaClaveIgual() {
-        var mapa = new HashMap<Etiqueta, String>();
-        mapa.put(new Etiqueta("zona", "aulario"), "edificio A");
-
-        assertEquals("edificio A", mapa.get(new Etiqueta("zona", "aulario")));
     }
 }

@@ -1,3 +1,0 @@
-# el valor de la tercera línea no es un número
-https://www.uib.es=300
-dns:uib.es=rapido

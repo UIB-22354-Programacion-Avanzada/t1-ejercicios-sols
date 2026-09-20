@@ -1,4 +1,0 @@
-# servicios.txt
-https://www.uib.es
-dns:uib.es
-tcp:mail.uib.es:25

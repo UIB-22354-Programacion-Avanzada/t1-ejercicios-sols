@@ -1,88 +1,84 @@
 package es.uib.prgava.tema1.ejercicios;
 
-import java.util.Objects;
-
 import es.uib.prgava.tema1.poo.DispositivoRed;
 
 /**
- * Ejercicio 1.1.4. <strong>Solución comentada.</strong> Punto de acceso inalámbrico, subclase de
- * {@link DispositivoRed}.
+ * Ejercicio 1.1.4. <strong>Solución comentada.</strong> Herencia, y el criterio para usarla.
  *
- * <p>La herencia está justificada aquí porque un punto de acceso <em>es un</em> dispositivo de
- * red: tiene nombre, dirección IP y puede activarse o desactivarse, y además añade banda y canal.
- * No estamos heredando para reutilizar código suelto, sino porque la relación de subtipo es real:
- * en cualquier sitio donde se espere un {@code DispositivoRed}, un {@code PuntoAcceso} sirve.
- * Contrasta con el ejercicio 1.2.3, donde heredar de {@code ArrayList} rompe esa promesa.
+ * <p>La frase que autoriza la herencia es «un punto de acceso <em>es un</em> dispositivo de red»:
+ * tiene nombre y dirección IP como cualquier otro, se activa y se desactiva igual, y además tiene
+ * cosas propias. Cuando la frase que encaja es «<em>tiene un</em>», la herramienta es la
+ * composición, y ese es el ejercicio siguiente.
+ *
+ * <p>Lo que se hereda no se reescribe: no hay aquí ni {@code nombre}, ni {@code direccionIp}, ni
+ * {@code activar}, ni {@code isActivo}. Solo lo que un conmutador no tiene: el SSID y el canal.
  */
 public class PuntoAcceso extends DispositivoRed {
 
-    /** Las dos bandas posibles. Un enum, y no un {@code String}, porque el conjunto es cerrado. */
-    public enum Banda { GHZ_24, GHZ_5 }
+    private final String ssid;
+    private int canal;                 // cambia: hay un método para cambiarlo
 
-    private final Banda banda;
-    private int canal;                 // el canal sí cambia en caliente; la banda, no
-
-    public PuntoAcceso(String nombre, String direccionIp, Banda banda, int canal) {
-        // super(...) debe ser la primera sentencia: la parte heredada del objeto se construye
-        // antes que la propia. Hasta que no termine, los campos de esta clase no existen.
+    /**
+     * La llamada a {@code super(...)} tiene que ser la primera instrucción del constructor, y esa
+     * restricción del lenguaje es una ayuda: garantiza que la parte heredada del objeto queda
+     * completa y válida antes de que esta clase empiece a tocar lo suyo.
+     *
+     * @param canal de 1 a 13
+     * @throws IllegalArgumentException si el canal se sale de ese rango
+     */
+    public PuntoAcceso(String nombre, String direccionIp, String ssid, int canal) {
         super(nombre, direccionIp);
-
-        this.banda = Objects.requireNonNull(banda, "La banda no puede ser nula");
-        validarCanal(banda, canal);    // el invariante se comprueba antes de asignar
-        this.canal = canal;
+        this.ssid = ssid;
+        this.canal = comprobado(canal);
     }
 
-    public Banda getBanda() {
-        return banda;
+    /**
+     * La validación, extraída a un método privado de clase. El enunciado preguntaba si compensa
+     * escribirla dos veces —en el constructor y en {@code cambiarCanal}— y la respuesta es que no:
+     * el día que el rango cambie, con las dos copias hay que acordarse de las dos.
+     *
+     * <p>Devuelve el valor comprobado en lugar de no devolver nada. Así se puede escribir
+     * {@code this.canal = comprobado(canal)}, y no queda la posibilidad de llamar a la validación
+     * y olvidarse de asignar.
+     */
+    private static int comprobado(int canal) {
+        if (canal < 1 || canal > 13) {
+            throw new IllegalArgumentException("Canal fuera de rango: " + canal);
+        }
+        return canal;
+    }
+
+    public String getSsid() {
+        return ssid;
     }
 
     public int getCanal() {
         return canal;
     }
 
-    /**
-     * Cambia el canal aplicando <strong>la misma</strong> validación que el constructor.
-     *
-     * <p>La clave está en que la regla vive en un solo sitio, {@link #validarCanal}. Si estuviera
-     * copiada en los dos métodos, tarde o temprano alguien ampliaría el rango en uno y no en el
-     * otro, y existiría un camino por el que el objeto acabaría en un estado inválido.
-     */
-    public void cambiarCanal(int nuevoCanal) {
-        validarCanal(banda, nuevoCanal);
-        this.canal = nuevoCanal;
+    public void cambiarCanal(int nuevo) {
+        canal = comprobado(nuevo);
     }
 
     /**
-     * Método auxiliar privado y estático: privado porque es un detalle interno, y estático
-     * porque no necesita el estado del objeto — de hecho se invoca desde el constructor, donde
-     * el objeto aún no está del todo construido.
+     * {@code super.toString()} reutiliza lo que la superclase ya sabe hacer, en lugar de repetir
+     * aquí el formato de nombre, IP y estado. Si mañana {@code DispositivoRed} añade un campo a su
+     * {@code toString}, este lo hereda sin tocarlo.
      */
-    private static void validarCanal(Banda banda, int canal) {
-        boolean valido = switch (banda) {
-            case GHZ_24 -> canal >= 1 && canal <= 14;
-            case GHZ_5  -> canal >= 36 && canal <= 165;
-        };
-        // Sin 'default': al ser un enum, el compilador comprueba que el switch es exhaustivo,
-        // y si mañana se añade una banda nueva este switch dejará de compilar. Eso es una
-        // ayuda, no un estorbo: te obliga a decidir qué canales son válidos en la banda nueva.
-        if (!valido) {
-            throw new IllegalArgumentException(
-                    "Canal " + canal + " no válido en la banda " + banda);
-        }
-    }
-
     @Override
     public String toString() {
-        return "PuntoAcceso[" + getNombre() + ", ip=" + getDireccionIp()
-                + ", banda=" + banda + ", canal=" + canal + "]";
+        return super.toString() + " + PuntoAcceso[ssid=" + ssid + ", canal=" + canal + "]";
     }
 
-    // Respuesta al TODO 1.1.4 (por qué toString usa getNombre() y no el campo nombre):
+    // ----------------------------------------------------------------------------------
+    // RESPUESTA a la pregunta del paso 5: por qué getDispositivosCreados() cuenta también los
+    // puntos de acceso, si el contador está declarado en la superclase y esta clase no lo toca.
     //
-    // Porque el campo 'nombre' de DispositivoRed es privado, y privado significa privado
-    // también para las subclases: esta clase no lo ve. Solo puede llegar a él por el método
-    // público getNombre(). Y está bien que sea así: si el campo fuera 'protected', cualquier
-    // subclase podría escribir en él saltándose las validaciones de la superclase, y la
-    // superclase no podría cambiar su representación interna sin romper a sus subclases. La
-    // encapsulación protege a la clase base de sus propios herederos.
+    // Porque `dispositivosCreados` es un atributo de CLASE: hay uno solo, y pertenece a
+    // DispositivoRed, no a cada objeto. Todo constructor de PuntoAcceso empieza llamando a
+    // super(...), y ese constructor es el que incrementa la cuenta. No hay un contador de
+    // enrutadores y otro de puntos de acceso: hay un contador de dispositivos de red, y un punto
+    // de acceso es uno de ellos. Si quisiéramos contarlos por separado, cada subclase necesitaría
+    // su propio atributo de clase.
+    // ----------------------------------------------------------------------------------
 }

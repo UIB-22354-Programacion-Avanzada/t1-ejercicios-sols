@@ -1,94 +1,63 @@
 package es.uib.prgava.tema1.ejercicios;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
-import java.util.Iterator;
 import java.util.List;
 
 /**
- * Ejercicio 1.3.1. <strong>Solución comentada.</strong> Colección genérica que conserva como
- * máximo los últimos {@code capacidad} elementos añadidos.
+ * Ejercicio 1.3.1. <strong>Solución comentada.</strong> Una clase genérica: el parámetro de tipo se
+ * declara una vez, y a partir de ahí {@code T} es un tipo más.
  *
- * <p>El parámetro de tipo {@code <T>} es lo que hace que esta clase sirva para
- * {@code Historial<String>}, {@code Historial<Resultado>} o {@code Historial<Alerta>} con
- * comprobación de tipos completa en compilación. La alternativa antigua —guardar
- * {@code Object} y hacer <em>cast</em> al sacar— compila igual pero traslada los errores a la
- * ejecución, en forma de {@code ClassCastException}.
+ * <p>Fíjate en que dentro de la clase no hay ni una conversión de tipo ni un {@code Object}. Eso es
+ * todo lo que hacen los genéricos: mover al compilador una comprobación que si no habría que hacer en
+ * ejecución. La versión con {@code Object} guardaría lo mismo, pero quien sacara elementos tendría
+ * que convertirlos a mano, y un día convertiría al tipo equivocado y se enteraría al ejecutar.
  *
- * <p>Por qué un {@code ArrayDeque} y no un {@code ArrayList}: la operación característica de esta
- * clase es «quita el más antiguo y añade al final». En un {@code ArrayList}, quitar el primer
- * elemento obliga a desplazar todos los demás: coste lineal. Un {@code ArrayDeque} añade y quita
- * por los dos extremos en tiempo constante amortizado. La estructura de datos se elige por las
- * operaciones que se van a hacer, no por costumbre — que es el tema del Tema 2.
+ * <p>Y la respuesta al «Para pensar»: se gana que el error de tipo lo dé el compilador y no la
+ * ejecución, y que el código de quien usa la clase no tenga conversiones. Se pierde poco:
+ * principalmente, que no se pueden usar tipos primitivos como {@code T} —hay que escribir
+ * {@code Historial<Integer>}— y que, por el borrado de tipos, dentro de la clase no se puede
+ * preguntar qué es {@code T} ni crear un {@code new T[...]}.
  */
 public final class Historial<T> {
 
     private final int capacidad;
-    private final Deque<T> elementos;
+    private final List<T> elementos = new ArrayList<>();
 
+    /** @throws IllegalArgumentException si la capacidad no es positiva */
     public Historial(int capacidad) {
         if (capacidad < 1) {
-            throw new IllegalArgumentException("La capacidad debe ser al menos 1, y llegó " + capacidad);
+            throw new IllegalArgumentException("La capacidad debe ser positiva: " + capacidad);
         }
         this.capacidad = capacidad;
-        this.elementos = new ArrayDeque<>(capacidad);
     }
 
-    /** Si el historial está lleno, descarta el más antiguo antes de añadir. */
+    /** Al llegar a la capacidad se descarta el más antiguo, que es el primero de la lista. */
     public void anadir(T elemento) {
         if (elementos.size() == capacidad) {
-            elementos.removeFirst();       // el más antiguo está al principio
+            elementos.remove(0);
         }
-        elementos.addLast(elemento);       // el más reciente, al final
+        elementos.add(elemento);
     }
 
     /**
-     * Como máximo los {@code n} elementos más recientes, del más reciente al más antiguo, en una
-     * lista inmutable.
+     * Los {@code cuantos} más recientes, del más antiguo al más nuevo.
      *
-     * <p>Guardamos del más antiguo al más reciente porque es el orden natural para insertar, pero
-     * al consultar interesa el orden contrario: lo reciente primero. {@code descendingIterator}
-     * recorre el {@code Deque} del final al principio sin copiar nada previamente.
+     * <p>{@code Math.max(0, ...)} evita tener que tratar aparte el caso de pedir más de los que hay:
+     * si se piden diez y hay dos, se devuelven los dos, que es lo razonable y lo que espera quien
+     * llama. Y {@code List.copyOf} devuelve una lista inmutable <em>y desconectada</em> de la interna:
+     * sin la copia, quien la reciba vería cambiar su contenido con cada {@code anadir}.
      */
-    public List<T> ultimos(int n) {
-        var resultado = new ArrayList<T>(Math.min(n, elementos.size()));
-        Iterator<T> desdeElFinal = elementos.descendingIterator();
-        // La condición combinada resuelve de un golpe el caso «me piden más de los que hay»:
-        // el iterador se agota antes de llegar a n. Sin ella haría falta un Math.min y un
-        // índice, con más sitios donde equivocarse.
-        while (desdeElFinal.hasNext() && resultado.size() < n) {
-            resultado.add(desdeElFinal.next());
-        }
-        return List.copyOf(resultado);
+    public List<T> ultimos(int cuantos) {
+        int desde = Math.max(0, elementos.size() - cuantos);
+        return List.copyOf(elementos.subList(desde, elementos.size()));
     }
 
     public int tamano() {
         return elementos.size();
     }
 
-    public boolean vacio() {
-        return elementos.isEmpty();
-    }
-
-    public boolean lleno() {
-        return elementos.size() == capacidad;
-    }
-
-    // Respuesta al TODO 1.3.1 (por qué ultimos devuelve List.copyOf):
-    //
-    // Por dos motivos distintos que conviene no confundir.
-    //
-    // (1) Devolver la colección interna —o una vista de ella— rompería la encapsulación: quien
-    //     recibiera la lista podría añadir o quitar elementos y estaría modificando el historial
-    //     por la puerta de atrás, saltándose anadir() y su regla de capacidad. El invariante
-    //     "nunca más de 'capacidad' elementos" dejaría de estar garantizado.
-    //
-    // (2) Aunque no la modificara, una vista cambiaría bajo sus pies cada vez que alguien
-    //     llamara a anadir(): el llamante creería tener una foto y tendría una ventana. Peor
-    //     aún, recorrerla mientras el historial cambia provoca ConcurrentModificationException.
-    //     Y en el Tema 3, con varios hilos, esto pasa de ser un riesgo a ser una certeza.
-    //
-    // El precio es una copia por consulta. Para un historial acotado a unas pocas decenas de
-    // elementos es irrelevante, y a cambio el contrato del método es trivial de razonar.
+    // Sobre el coste: remove(0) en un ArrayList desplaza todos los elementos, así que cada inserción
+    // por encima de la capacidad cuesta lineal. Con capacidades pequeñas —las de un historial de
+    // monitorización— no importa. La estructura adecuada si importara es ArrayDeque, y la del tema
+    // que ya hace esto es VentanaDeslizante, en el paquete genericos.
 }

@@ -1,23 +1,24 @@
+// ListaSoloLecturaHeredada.java
 package es.uib.prgava.tema1.ejercicios;
 
 import java.util.ArrayList;
+import java.util.Collection;
 
-/**
- * Ejercicio 1.2.3. Esta clase <strong>ya está escrita</strong> y viola el principio de sustitución
- * de Liskov. No la corrijas: úsala para diagnosticar el problema y escribe después
- * {@link ListaSoloLectura} con composición.
- */
-public final class ListaSoloLecturaHeredada extends ArrayList<String> {
+public class ListaSoloLecturaHeredada extends ArrayList<String> {
 
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;   // lo pide `javac -Xlint:all`
+
+    public ListaSoloLecturaHeredada(Collection<String> inicial) {
+        super(inicial);
+    }
 
     @Override
     public boolean add(String elemento) {
-        throw new UnsupportedOperationException("esta lista es de solo lectura");
+        throw new UnsupportedOperationException("lista de solo lectura");
     }
 
     @Override
     public boolean remove(Object elemento) {
-        throw new UnsupportedOperationException("esta lista es de solo lectura");
+        throw new UnsupportedOperationException("lista de solo lectura");
     }
 }

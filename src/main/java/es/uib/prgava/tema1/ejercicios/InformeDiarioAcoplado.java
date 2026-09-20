@@ -1,23 +1,23 @@
+// InformeDiarioAcoplado.java
 package es.uib.prgava.tema1.ejercicios;
 
 import es.uib.prgava.tema1.monitor.RepositorioEnMemoria;
 import es.uib.prgava.tema1.monitor.Servicio;
 
-/**
- * Ejercicio 1.2.5. Esta clase <strong>ya está escrita</strong>. Funciona, pero es imposible de
- * probar: crea ella misma su repositorio y escribe directamente en la consola.
- *
- * <p>No la modifiques: escribe {@link InformeDiario} invirtiendo las dependencias.
- */
-public final class InformeDiarioAcoplado {
+public class InformeDiarioAcoplado {
 
     private final RepositorioEnMemoria repositorio = new RepositorioEnMemoria();
 
-    public void emitir() {
-        System.out.println("=== Informe diario ===");
-        for (Servicio servicio : repositorio.servicios()) {
-            long comprobaciones = repositorio.historial(servicio).size();
-            System.out.println(servicio.nombre() + ": " + comprobaciones + " comprobaciones");
+    public void imprimir(Servicio servicio) {
+        var historial = repositorio.historial(servicio);
+        int fallos = 0;
+        for (var resultado : historial) {
+            if (resultado.esFallo()) {
+                fallos++;
+            }
         }
+        System.out.println("Informe de " + servicio.nombre());
+        System.out.println("  comprobaciones: " + historial.size());
+        System.out.println("  fallos: " + fallos);
     }
 }

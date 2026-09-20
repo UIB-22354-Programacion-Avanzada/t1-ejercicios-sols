@@ -3,62 +3,75 @@ package es.uib.prgava.tema1.ejercicios;
 import java.util.Objects;
 
 /**
- * Ejercicio 1.1.3. <strong>Solución comentada.</strong>
+ * Ejercicio 1.1.3. <strong>Solución comentada.</strong> La clase venía con dos defectos y aquí
+ * están los dos corregidos.
  *
- * <p>El enunciado entregaba esta clase con {@code equals} redefinido y {@code hashCode} sin
- * redefinir. La corrección es añadir {@code hashCode}, y lo interesante es entender por qué
- * hacía falta.
+ * <p><strong>Defecto 1: faltaba {@code hashCode}.</strong> El {@code equals} original ya comparaba
+ * los dos campos, así que la igualdad respondía bien; lo que fallaba era todo lo demás. Un
+ * {@code HashSet} o un {@code HashMap} no comparan con {@code equals} el elemento buscado contra
+ * todos los que guardan —eso sería tiempo lineal y perderían su razón de ser—: calculan primero el
+ * código hash para saber <strong>en qué cubo</strong> mirar, y solo dentro de ese cubo comparan con
+ * {@code equals}. Con el {@code hashCode} heredado de {@code Object}, que deriva de la identidad
+ * del objeto, dos etiquetas iguales creadas por separado caían en cubos distintos y no llegaban ni
+ * a compararse.
  *
- * <p>El contrato de {@link Object} dice: si {@code a.equals(b)}, entonces
- * {@code a.hashCode() == b.hashCode()}. El {@code hashCode} heredado de {@code Object} deriva de
- * la <em>identidad</em> del objeto, así que dos etiquetas iguales pero distintas instancias
- * devolvían códigos distintos. Las colecciones basadas en tabla hash —{@code HashSet},
- * {@code HashMap}— buscan primero el cubo por {@code hashCode} y solo dentro de él comparan con
- * {@code equals}: si el código no coincide, ni siquiera llegan a comparar. De ahí que
- * {@code contains} devolviera falso, que el conjunto admitiera duplicados y que el mapa no
- * recuperara el valor. Ver {@link DemoEtiqueta}.
+ * <p><strong>Defecto 2: el {@code equals} no era seguro.</strong> Estaba escrito como
+ * {@code Etiqueta esa = (Etiqueta) otro;}, sin comprobar nada. Con {@code null} lanzaba
+ * {@code NullPointerException} y con un objeto de otra clase, {@code ClassCastException}; y el
+ * contrato de {@code Object.equals} dice que en los dos casos hay que devolver {@code false}, no
+ * reventar. El {@code instanceof} con patrón resuelve las dos cosas de una vez: comprueba el tipo,
+ * descarta {@code null} —{@code null} no es {@code instanceof} de nada— y declara la variable ya
+ * convertida.
  *
- * <p>Comparación con un {@code record}: {@code record Etiqueta(String nombre, String valor)}
- * habría dado gratis, y coordinados, el constructor, los accesores, {@code equals},
- * {@code hashCode} y {@code toString}. Cuando la clase es un puro valor inmutable, el record no
- * es solo más corto: elimina por construcción la posibilidad de este error.
+ * <p><strong>Y la pregunta del final del enunciado:</strong> si {@code Etiqueta} fuera un
+ * {@code record Etiqueta(String texto, String color)}, ninguno de los tres pasos habría hecho
+ * falta. El compilador genera {@code equals}, {@code hashCode} y {@code toString} coordinados por
+ * construcción, y el defecto de este ejercicio no es que alguien escribiera mal el
+ * {@code hashCode}: es que no lo escribió. Con un {@code record}, esa omisión es imposible.
  */
-public final class Etiqueta {
+public class Etiqueta {
 
-    private final String nombre;
-    private final String valor;
+    private final String texto;
+    private final String color;
 
-    public Etiqueta(String nombre, String valor) {
-        this.nombre = Objects.requireNonNull(nombre);
-        this.valor = Objects.requireNonNull(valor);
+    public Etiqueta(String texto, String color) {
+        this.texto = texto;
+        this.color = color;
     }
 
-    public String nombre() { return nombre; }
+    public String texto() {
+        return texto;
+    }
 
-    public String valor() { return valor; }
+    public String color() {
+        return color;
+    }
 
     @Override
     public boolean equals(Object otro) {
-        return otro instanceof Etiqueta e
-                && nombre.equals(e.nombre)
-                && valor.equals(e.valor);
+        // instanceof con patrón: comprueba el tipo, excluye null y declara `esa` ya convertida.
+        return otro instanceof Etiqueta esa
+                && texto.equals(esa.texto)
+                && color.equals(esa.color);
     }
 
-    /**
-     * La corrección del ejercicio. {@code Objects.hash} combina los campos en un único entero;
-     * lo esencial es que use <strong>exactamente los mismos campos</strong> que {@code equals},
-     * ni uno más ni uno menos.
-     *
-     * <p>Dos etiquetas distintas pueden compartir código hash (una colisión), y eso es correcto:
-     * el contrato solo prohíbe lo contrario, que dos iguales tengan códigos distintos.
-     */
     @Override
     public int hashCode() {
-        return Objects.hash(nombre, valor);
+        // LOS MISMOS dos campos que usa equals, ni uno más ni uno menos. Si aquí apareciera un
+        // tercer campo, o faltara uno, el contrato se rompería y volveríamos al defecto original.
+        return Objects.hash(texto, color);
     }
 
     @Override
     public String toString() {
-        return nombre + "=" + valor;
+        return "Etiqueta[" + texto + ", " + color + "]";
     }
+
+    // ----------------------------------------------------------------------------------
+    // CONSECUENCIA PRÁCTICA del fallo original, que el enunciado pedía explicar en tres líneas:
+    // la etiqueta funcionaba mientras se comparara a mano y dejaba de funcionar en cuanto entraba
+    // en un HashSet o en un HashMap: contains devolvía false para una etiqueta igual, el conjunto
+    // admitía duplicados y una clave no recuperaba su valor. El error no aparece donde se escribe
+    // la clase, sino mucho después y en otro fichero, que es lo que lo hace tan caro de encontrar.
+    // ----------------------------------------------------------------------------------
 }

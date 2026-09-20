@@ -1,20 +1,46 @@
 package es.uib.prgava.tema1.ejercicios;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 /**
- * Ejercicio 1.2.4. <strong>Solución comentada.</strong> Rol de <strong>consulta</strong>.
+ * Ejercicio 1.2.4. Inventario de solo consulta: se construye una vez y no cambia.
  *
- * <p>Un cliente que solo necesita mirar el catálogo —una pantalla de listado, un informe—
- * depende únicamente de esta interfaz. No se entera de que existen el alta o la administración,
- * y no hay que recompilarlo si aquellas cambian.
+ * <p>Antes declaraba {@code GestorDispositivos} y tenía que escribir cinco métodos que no sabía
+ * cumplir: tres que lanzaban {@code UnsupportedOperationException} y dos exportaciones que
+ * devolvían la cadena vacía. Ahora declara solo {@link ConsultaDeDispositivos} y
+ * <strong>no le queda ni uno</strong>. Ese es el resultado que se buscaba, y se mide así: cuenta
+ * los cuerpos que no hacen nada.
  */
-public interface ConsultaDispositivos {
+public final class ConsultaDispositivos implements ConsultaDeDispositivos {
 
-    Optional<FichaDispositivo> buscarPorNombre(String nombre);
+    private final List<FichaDispositivo> fichas;
 
-    List<FichaDispositivo> listarTodos();
+    public ConsultaDispositivos(List<FichaDispositivo> fichas) {
+        this.fichas = List.copyOf(fichas);
+    }
 
-    int contar();
+    @Override
+    public boolean existe(String nombre) {
+        for (var ficha : fichas) {
+            if (ficha.nombre().equals(nombre)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public List<String> nombres() {
+        var todos = new ArrayList<String>();
+        for (var ficha : fichas) {
+            todos.add(ficha.nombre());
+        }
+        return List.copyOf(todos);
+    }
+
+    @Override
+    public int cuantos() {
+        return fichas.size();
+    }
 }

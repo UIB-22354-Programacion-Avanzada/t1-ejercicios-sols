@@ -5,79 +5,53 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import es.uib.prgava.tema1.monitor.Estado;
+import es.uib.prgava.tema1.monitor.Resultado;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Ejercicios 1.3.6 y 1.3.7. */
+/** Ejercicios 1.3.5 y 1.3.6. */
 class InformesEjercicioTest {
 
-    private static final List<es.uib.prgava.tema1.monitor.Resultado> HISTORIAL =
-            Datos.historialDeEjemplo();
+    private static final List<Resultado> HISTORIAL = Datos.historialMezclado();
 
     @Test
-    void recuentaLosEstadosEnElOrdenDelEnum() {
-        var recuento = InformesEjercicio.recuentoGlobal(HISTORIAL);
-
-        assertEquals(5L, recuento.get(Estado.ACTIVO));
-        assertEquals(1L, recuento.get(Estado.DEGRADADO));
-        assertEquals(3L, recuento.get(Estado.CAIDO));
-        assertEquals(List.of(Estado.ACTIVO, Estado.DEGRADADO, Estado.CAIDO),
-                List.copyOf(recuento.keySet()));
+    void cuentaLosFallos() {
+        assertEquals(2, InformesEjercicio.fallos(HISTORIAL));
+        assertEquals(0, InformesEjercicio.fallos(List.of()));
     }
 
     @Test
-    void calculaLaLatenciaMediaExcluyendoLosFallos() {
-        assertEquals(200.0, InformesEjercicio.latenciaMediaDe(HISTORIAL, Datos.WEB).orElseThrow());
-        assertEquals(700.0, InformesEjercicio.latenciaMediaDe(HISTORIAL, Datos.TCP).orElseThrow());
+    void calculaLaLatenciaMedia() {
+        // 100 + 0 + 700 + 40 + 0 = 840 entre 5
+        assertEquals(168.0, InformesEjercicio.latenciaMediaEnMilisegundos(HISTORIAL), 0.001);
     }
 
     @Test
-    void latenciaMediaEstaVaciaSiNoHayComprobacionesCorrectas() {
-        var soloFallos = List.of(Datos.fallo(Datos.WEB), Datos.fallo(Datos.WEB));
-
-        assertTrue(InformesEjercicio.latenciaMediaDe(soloFallos, Datos.WEB).isEmpty());
+    void conHistorialVacioLaMediaNoRevienta() {
+        assertEquals(0.0, InformesEjercicio.latenciaMediaEnMilisegundos(List.of()), 0.001);
     }
 
     @Test
-    void seleccionaLosServiciosConSuficientesFallos() {
-        assertEquals(List.of(Datos.DNS), InformesEjercicio.serviciosConAlMenos(HISTORIAL, 2));
-        assertEquals(List.of(Datos.DNS, Datos.WEB),
-                InformesEjercicio.serviciosConAlMenos(HISTORIAL, 1));
+    void listaLosServiciosConAlgunFalloSinRepetir() {
+        var conFallo = InformesEjercicio.serviciosConAlgunFallo(HISTORIAL);
+        assertEquals(2, conFallo.size());
+        assertTrue(conFallo.contains(Datos.WEB));
+        assertTrue(conFallo.contains(Datos.DNS));
     }
 
     @Test
-    void particionaPorFallo() {
-        var particion = InformesEjercicio.particionPorFallo(HISTORIAL);
-
-        assertEquals(3, particion.get(true).size());
-        assertEquals(6, particion.get(false).size());
+    void cuentaLasComprobacionesDeCadaEstado() {
+        var porEstado = InformesEjercicio.comprobacionesPorEstado(HISTORIAL);
+        assertEquals(2L, porEstado.get(Estado.ACTIVO));
+        assertEquals(1L, porEstado.get(Estado.DEGRADADO));
+        assertEquals(2L, porEstado.get(Estado.CAIDO));
     }
 
     @Test
-    void calculaLaDisponibilidadDeCadaServicio() {
-        var disponibilidades = InformesEjercicio.disponibilidades(HISTORIAL);
-
-        assertEquals(0.75, disponibilidades.get(Datos.WEB));
-        assertEquals(1.0, disponibilidades.get(Datos.TCP));
-    }
-
-    @Test
-    void resumeLasLatenciasPorServicio() {
-        var estadisticas = InformesEjercicio.estadisticasLatencia(HISTORIAL);
-
-        assertEquals(3, estadisticas.get(Datos.WEB).getCount());
-        assertEquals(300, estadisticas.get(Datos.WEB).getMax());
-        assertEquals(100, estadisticas.get(Datos.WEB).getMin());
-    }
-
-    @Test
-    void laTablaTieneUnaLineaPorServicioYEmpiezaPorElPeor() {
-        String tabla = InformesEjercicio.tabla(HISTORIAL);
-
-        String[] lineas = tabla.split("\\R");
-        assertEquals(3, lineas.length);
-        assertTrue(lineas[0].contains("dns:uib.es"),
-                "la primera línea debe ser la del peor servicio, y fue: " + lineas[0]);
+    void agrupaLosServiciosPorSuUltimoEstado() {
+        var porUltimo = InformesEjercicio.serviciosPorUltimoEstado(HISTORIAL);
+        assertEquals(List.of(Datos.WEB), porUltimo.get(Estado.CAIDO));
+        assertEquals(List.of(Datos.DNS), porUltimo.get(Estado.ACTIVO));
     }
 }

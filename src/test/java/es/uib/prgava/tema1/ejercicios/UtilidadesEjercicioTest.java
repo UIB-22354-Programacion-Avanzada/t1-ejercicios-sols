@@ -1,42 +1,41 @@
 package es.uib.prgava.tema1.ejercicios;
 
-import java.time.Duration;
-import java.util.List;
-
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Ejercicio 1.3.2. */
 class UtilidadesEjercicioTest {
 
     @Test
-    void minimoFuncionaConVariosTipos() {
-        assertEquals(1, UtilidadesEjercicio.minimo(List.of(3, 1, 2)).orElseThrow());
-        assertEquals("a", UtilidadesEjercicio.minimo(List.of("c", "a", "b")).orElseThrow());
-        assertEquals(Duration.ofMillis(10),
-                UtilidadesEjercicio.minimo(List.of(Duration.ofMillis(50), Duration.ofMillis(10)))
-                        .orElseThrow());
+    void mayorFuncionaConEnteros() {
+        assertEquals(Integer.valueOf(7), UtilidadesEjercicio.mayor(3, 7));
     }
 
     @Test
-    void minimoDeUnaColeccionVaciaEstaVacio() {
-        assertTrue(UtilidadesEjercicio.minimo(List.<Integer>of()).isEmpty());
+    void mayorFuncionaConCadenas() {
+        assertEquals("pera", UtilidadesEjercicio.mayor("manzana", "pera"));
     }
 
     @Test
-    void contarSiAplicaElCriterio() {
-        assertEquals(2, UtilidadesEjercicio.contarSi(List.of(1, 2, 3, 4), n -> n % 2 == 0));
+    void mayorFuncionaConTusDirecciones() {
+        var menor = new DireccionIpv4(10, 0, 0, 1);
+        var mayor = new DireccionIpv4(10, 0, 0, 2);
+        assertEquals(mayor, UtilidadesEjercicio.mayor(menor, mayor));
     }
 
     @Test
-    void ordenadoDescendenteDevuelveUnaListaNuevaEInmutable() {
-        var original = List.of(1, 3, 2);
+    void contarIgualesUsaEquals() {
+        var direcciones = new DireccionIpv4[] {
+                new DireccionIpv4(10, 0, 0, 1),
+                new DireccionIpv4(10, 0, 0, 2),
+                new DireccionIpv4(10, 0, 0, 1)
+        };
+        assertEquals(2, UtilidadesEjercicio.contarIguales(direcciones, new DireccionIpv4(10, 0, 0, 1)));
+    }
 
-        var ordenada = UtilidadesEjercicio.ordenadoDescendente(original);
-
-        assertEquals(List.of(3, 2, 1), ordenada);
-        assertEquals(List.of(1, 3, 2), original);
+    @Test
+    void contarIgualesDevuelveCeroSiNoHayNinguno() {
+        assertEquals(0, UtilidadesEjercicio.contarIguales(new String[] { "a", "b" }, "z"));
     }
 }

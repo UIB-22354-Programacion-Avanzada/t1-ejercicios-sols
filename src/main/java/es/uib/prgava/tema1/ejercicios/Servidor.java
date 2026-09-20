@@ -1,157 +1,91 @@
 package es.uib.prgava.tema1.ejercicios;
 
-import java.util.Objects;
-
 /**
- * Ejercicio 1.1.2. Servidor con nombre, dirección y puerto.
+ * Ejercicios 1.1.2 y 1.1.7. <strong>Solución comentada.</strong>
  *
- * <p><strong>Solución comentada.</strong> Clase tradicional y no un {@code record}, porque aquí sí
- * hay estado que cambia: un servidor se arranca y se para. Un record tiene todos sus campos
- * finales, así que no puede modelar eso.
+ * <p>Lo contrario del ejercicio anterior: aquí sí hay <strong>identidad</strong> y sí hay estado
+ * que cambia. Un servidor que entra en mantenimiento sigue siendo el mismo servidor, así que no
+ * se puede modelar como un valor inmutable y un {@code record} no sirve. El precio de poder
+ * cambiar de estado es todo lo que hay que escribir a mano: constructor, validación, accesores,
+ * {@code toString}.
+ *
+ * <p>Fíjate en el reparto de {@code final}: el nombre lo es y el estado de mantenimiento no. Esa
+ * línea es la decisión de diseño del ejercicio, y está contestada al final de la clase.
  */
-public class Servidor {
+public class Servidor implements Identificable {
 
     /**
-     * Atributo de <strong>clase</strong>: existe uno solo, compartido por todas las instancias,
-     * y vive mientras viva la clase. No confundir con un atributo de instancia, del que hay una
-     * copia por objeto. Es privado y solo se lee a través de {@link #getServidoresCreados()}:
-     * si fuera público, cualquiera podría falsear la cuenta.
+     * Atributo de <strong>clase</strong>: existe uno solo, compartido por todos los objetos, y
+     * vive mientras viva la clase. Es {@code private} como cualquier otro campo: que sea
+     * {@code static} no es excusa para abrirlo, porque entonces cualquiera podría falsear la
+     * cuenta.
      */
     private static int servidoresCreados = 0;
 
-    // El nombre no es final porque es lo único que tiene sentido cambiar (ver setNombre).
-    private String nombre;
-
-    // Dirección y puerto son finales: forman parte de la identidad del servidor (ver equals).
-    private final DireccionIpv4 direccion;
-    private final int puerto;
-
-    private boolean enServicio;
+    private final String nombre;          // la identidad: no cambia
+    private boolean enMantenimiento;      // el estado: cambia
 
     /**
-     * Constructor principal. Es el único que toca los campos directamente; todos los demás
-     * caminos de construcción deben pasar por aquí.
+     * Primero se valida, después se asigna e incrementa. Si algo falla, la excepción sale antes
+     * de haber tocado ningún campo y antes de haber contado el servidor: el objeto simplemente no
+     * llega a existir, y la cuenta sigue cuadrando.
+     *
+     * @throws IllegalArgumentException si el nombre es {@code null} o está en blanco
      */
-    public Servidor(String nombre, DireccionIpv4 direccion, int puerto) {
-        // Validar ANTES de asignar: si algo falla, el objeto no llega a existir en un estado
-        // inconsistente. Este es el principio de «un objeto nace válido y muere válido».
+    public Servidor(String nombre) {
         if (nombre == null || nombre.isBlank()) {
             throw new IllegalArgumentException("El nombre no puede estar vacío");
         }
-        // requireNonNull lanza NullPointerException, que es la excepción correcta para un
-        // argumento nulo; IllegalArgumentException queda para valores presentes pero inválidos.
-        Objects.requireNonNull(direccion, "La dirección no puede ser nula");
-        if (puerto < 1 || puerto > 65535) {
-            throw new IllegalArgumentException("Puerto fuera de rango: " + puerto);
-        }
-
         this.nombre = nombre.strip();
-        this.direccion = direccion;
-        this.puerto = puerto;
-        this.enServicio = false;          // un servidor recién creado aún no da servicio
-        servidoresCreados++;              // se cuenta aquí, en el único constructor real
+        this.enMantenimiento = false;     // un servidor nace operativo
+        servidoresCreados++;
     }
 
     /**
-     * Constructor sobrecargado que usa el puerto 443 (HTTPS).
-     *
-     * <p>{@code this(...)} delega en el constructor principal, y tiene que ser la primera
-     * sentencia. Es la forma correcta de encadenar constructores: la validación y el incremento
-     * del contador ocurren una sola vez, en un solo sitio. Copiar el cuerpo aquí habría
-     * duplicado las reglas y, peor, habría contado dos veces el servidor.
+     * Método de clase: se invoca como {@code Servidor.servidoresCreados()}, sobre el tipo y no
+     * sobre un objeto, porque la respuesta no depende de ningún servidor en concreto.
      */
-    public Servidor(String nombre, DireccionIpv4 direccion) {
-        this(nombre, direccion, 443);
-    }
-
-    /**
-     * Método de <strong>clase</strong>: se invoca como {@code Servidor.getServidoresCreados()},
-     * sin necesidad de tener ningún objeto, porque la información que devuelve no pertenece a
-     * ninguna instancia concreta.
-     */
-    public static int getServidoresCreados() {
+    public static int servidoresCreados() {
         return servidoresCreados;
     }
 
-    public void arrancar() {
-        enServicio = true;
+    public void entrarEnMantenimiento() {
+        enMantenimiento = true;
     }
 
-    public void parar() {
-        enServicio = false;
+    public void salirDeMantenimiento() {
+        enMantenimiento = false;
     }
 
-    public String getNombre() {
+    public String nombre() {
         return nombre;
     }
 
-    /**
-     * Devolver {@code direccion} directamente es seguro <em>porque {@link DireccionIpv4} es
-     * inmutable</em>: quien la reciba no puede modificarla. Si fuera una clase mutable, aquí
-     * haría falta una copia defensiva, o estaríamos regalando acceso a nuestro estado interno.
-     */
-    public DireccionIpv4 getDireccion() {
-        return direccion;
-    }
-
-    public int getPuerto() {
-        return puerto;
-    }
-
-    /** Convención JavaBeans: los accesores de {@code boolean} se llaman {@code isXxx}. */
-    public boolean isEnServicio() {
-        return enServicio;
-    }
-
-    /** El nombre sí se puede cambiar: es una etiqueta, no parte de la identidad. */
-    public void setNombre(String nombre) {
-        if (nombre == null || nombre.isBlank()) {
-            throw new IllegalArgumentException("El nombre no puede estar vacío");
-        }
-        this.nombre = nombre.strip();
-    }
-
-    /**
-     * Igualdad <strong>por dirección y puerto</strong>, no por nombre: dos entradas de
-     * configuración que apuntan al mismo extremo de red son el mismo servidor aunque se llamen
-     * distinto («web» y «web-replica»).
-     *
-     * <p>{@code instanceof} con patrón (Java 16+) sustituye al clásico
-     * {@code if (!(otro instanceof Servidor)) return false;} seguido de un cast: comprueba el
-     * tipo y declara la variable ya convertida en una sola expresión.
-     */
-    @Override
-    public boolean equals(Object otro) {
-        return otro instanceof Servidor s
-                && puerto == s.puerto
-                && direccion.equals(s.direccion);
-    }
-
-    /**
-     * Regla de oro: si dos objetos son iguales según {@code equals}, sus {@code hashCode} deben
-     * coincidir. Por eso este {@code hashCode} usa <strong>los mismos campos</strong> que
-     * {@code equals} —dirección y puerto— y ninguno más. Incluir el nombre rompería el contrato
-     * y haría que un {@code HashSet} tratara como distintos a dos servidores iguales. El
-     * ejercicio 1.1.3 muestra en vivo qué ocurre cuando esto se incumple.
-     */
-    @Override
-    public int hashCode() {
-        return Objects.hash(direccion, puerto);
+    public boolean estaEnMantenimiento() {
+        return enMantenimiento;
     }
 
     @Override
     public String toString() {
-        return "Servidor[" + nombre + ", " + direccion + ":" + puerto
-                + ", " + (enServicio ? "en servicio" : "parado") + "]";
+        return nombre + (enMantenimiento ? " (en mantenimiento)" : " (operativo)");
     }
 
-    // Respuesta al TODO 1.1.2 (por qué no hay setDireccion ni setPuerto):
+    /** Ejercicio 1.1.7. El nombre es lo que identifica a un servidor en el inventario. */
+    @Override
+    public String identificador() {
+        return nombre;
+    }
+
+    // ----------------------------------------------------------------------------------
+    // RESPUESTA a lo que pedía el enunciado: por qué no hay un método para cambiar el nombre.
     //
-    // Porque la identidad del servidor ES la pareja (dirección, puerto): es lo que compara
-    // equals y lo que resume hashCode. Si se pudieran cambiar, el hashCode de un objeto ya
-    // metido en un HashSet o usado como clave de un HashMap cambiaría bajo los pies de la
-    // colección, y el objeto quedaría irrecuperable: seguiría en el cubo antiguo mientras las
-    // búsquedas irían al nuevo. Dejarlos finales convierte ese error en imposible, en lugar de
-    // en una regla que hay que recordar. Cambiar de dirección o de puerto significa que es
-    // otro servidor: constrúyelo.
+    // Porque el nombre ES la identidad del servidor: es lo que devuelve identificador() y lo que
+    // aparece en cualquier registro o informe que lo mencione. Un servidor que cambia de nombre
+    // no es el mismo servidor con otra etiqueta; es otro servidor, y hay que construirlo.
+    // Declarar el campo `final` convierte ese razonamiento en una garantía del compilador, en
+    // lugar de en una regla que hay que recordar cada vez que alguien añade un método.
+    //
+    // Encapsular no es «poner private y añadir un get y un set por campo». Es decidir qué puede
+    // cambiar y ofrecer solo esas operaciones: aquí, entrar y salir de mantenimiento, y nada más.
+    // ----------------------------------------------------------------------------------
 }

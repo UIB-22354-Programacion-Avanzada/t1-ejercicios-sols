@@ -5,41 +5,26 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Ejercicio 1.1.5. <strong>Solución comentada.</strong> Estas pruebas venían enteras comentadas
- * en el esqueleto, porque no compilan hasta que existe {@code ServicioPing} y está en la cláusula
- * {@code permits} de {@link Servicio}. Descomentarlas es el último paso del ejercicio.
- *
- * <p>Que el código de prueba <em>no compile</em> es, en este caso, la lección: el compilador
- * marca todos los sitios que hay que tocar al ampliar una jerarquía sellada.
- */
+/** Ejercicio 1.2.7, la parte del monitor: un tipo de servicio más, sin tocar el Monitor. */
 class ServicioPingTest {
 
     @Test
-    void desdeReconoceLaFormaPing() {
-        Servicio servicio = Servicio.desde("ping:www.uib.es");
-
-        assertEquals("ping:www.uib.es", servicio.nombre());
+    void laFabricaReconoceElPrefijoPing() {
+        var servicio = Servicio.desde("ping:uib.es");
         assertInstanceOf(ServicioPing.class, servicio);
+        assertEquals("ping:uib.es", servicio.nombre());
     }
 
     @Test
-    void describirContemplaElNuevoTipo() {
-        String texto = Descripciones.describir(Servicio.desde("ping:www.uib.es"));
-
-        assertTrue(texto.contains("www.uib.es"));
+    void losTiposDeAntesSiguenFuncionando() {
+        assertInstanceOf(ServicioHttp.class, Servicio.desde("https://www.uib.es"));
+        assertInstanceOf(ServicioDns.class, Servicio.desde("dns:uib.es"));
+        assertInstanceOf(ServicioTcp.class, Servicio.desde("tcp:mail.uib.es:25"));
     }
 
     @Test
-    void unHostVacioSeRechaza() {
-        assertThrows(IllegalArgumentException.class, () -> Servicio.desde("ping:   "));
-    }
-
-    @Test
-    void elHostSeNormaliza() {
-        // Igual que ServicioDns: mayúsculas y espacios no deben crear servicios distintos.
-        assertEquals(Servicio.desde("ping:www.uib.es"), Servicio.desde("ping:WWW.UIB.ES"));
+    void unTextoDesconocidoSigueSiendoRechazado() {
+        assertThrows(IllegalArgumentException.class, () -> Servicio.desde("gopher:uib.es"));
     }
 }

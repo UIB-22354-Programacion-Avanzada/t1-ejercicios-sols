@@ -1,20 +1,32 @@
 package es.uib.prgava.tema1.ejercicios;
 
 /**
- * Ejercicio 1.2.4. <strong>Solución comentada.</strong> La interfaz grande original, ahora
- * reducida a la <em>suma</em> de los tres roles.
+ * Ejercicio 1.2.4. <strong>Solución comentada.</strong> La interfaz de ocho métodos, dividida.
  *
- * <p>El principio de segregación de interfaces dice que ningún cliente debe depender de métodos
- * que no usa. La versión original obligaba a un simple catálogo a «implementar» el reinicio y la
- * actualización de firmware, normalmente lanzando excepciones — es decir, a violar Liskov, igual
- * que en el ejercicio 1.2.3.
+ * <p>El síntoma del principio I era el código que las implementaciones se veían obligadas a
+ * escribir: métodos vacíos «porque no aplican» y métodos que lanzan
+ * {@code UnsupportedOperationException}. Cada uno de esos cuerpos es una promesa incumplida, y el
+ * problema no está en la clase que los escribe: está en la interfaz, que le pide cosas que no le
+ * corresponden.
  *
- * <p>Que esta interfaz siga existiendo no es una contradicción: sirve para quien de verdad
- * necesita los tres roles, como una consola de administración completa. Lo que ha cambiado es que
- * ahora es una <strong>opción</strong> y no una imposición: cada cliente declara el mínimo que
- * necesita. Compara con {@link es.uib.prgava.tema1.monitor.RepositorioResultados}, que hace
- * exactamente lo mismo con lectura y escritura.
+ * <p>La división es por <strong>roles de cliente</strong>, no por tamaño: {@link AltaDeDispositivos}
+ * para quien modifica, {@link ConsultaDeDispositivos} para quien mira, {@link ExportacionCsv} y
+ * {@link ExportacionJson} para cada formato. Que las dos últimas tengan un solo método no es un
+ * defecto: hay un cliente que quiere CSV y no JSON —{@link ExportadorCsv}—, y eso es lo que las
+ * separa.
+ *
+ * <p>Esta interfaz sobrevive como la <strong>unión</strong> de los cuatro roles, exactamente igual
+ * que {@code RepositorioResultados} en el monitor es la unión de {@code LectorResultados} y
+ * {@code EscritorResultados}. Sirve para lo único para lo que debe servir: nombrar de una vez a una
+ * implementación que de verdad cumple los cuatro papeles. Lo que ya no se puede hacer es
+ * <em>pedirla</em> en la firma de un cliente que solo consulta.
+ *
+ * <p>Y la respuesta al «Para pensar» —qué criterio dice que ya se ha dividido bastante—: no es el
+ * número de métodos, es que <strong>ninguna implementación tenga que escribir un método que no sabe
+ * cumplir</strong>. Mientras quede un cuerpo vacío o un {@code UnsupportedOperationException} por
+ * «no aplica», falta una división. Cuando no quede ninguno, sobra seguir: dividir más solo añade
+ * nombres, y el cableado se vuelve ilegible sin ganar nada.
  */
 public interface GestorDispositivos
-        extends ConsultaDispositivos, AltaDispositivos, AdministracionDispositivos {
+        extends AltaDeDispositivos, ConsultaDeDispositivos, ExportacionCsv, ExportacionJson {
 }

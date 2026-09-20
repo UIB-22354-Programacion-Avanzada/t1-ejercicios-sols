@@ -13,43 +13,34 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Ejercicio 1.2.3. */
 class ListaSoloLecturaTest {
 
-    @Test
-    void laVersionHeredadaRompeElContratoDeList() {
-        List<String> lista = new ListaSoloLecturaHeredada();
+    private static final List<String> TRES = List.of("a", "b", "c");
 
-        // Este es el problema: un método escrito contra List deja de funcionar.
-        assertThrows(UnsupportedOperationException.class, () -> lista.add("uno"));
+    @Test
+    void ofreceLoQueDeVerdadCumple() {
+        var lista = new ListaSoloLectura(TRES);
+        assertEquals(3, lista.tamano());
+        assertEquals("b", lista.get(1));
+        assertTrue(lista.contiene("c"));
+        assertFalse(lista.contiene("z"));
     }
 
     @Test
-    void ofreceLectura() {
-        var lista = new ListaSoloLectura(List.of("uno", "dos"));
-
-        assertEquals(2, lista.tamano());
-        assertEquals("dos", lista.obtener(1));
-        assertTrue(lista.contiene("uno"));
-        assertFalse(lista.contiene("tres"));
+    void laListaQueDevuelveTampocoSePuedeModificar() {
+        var comoLista = new ListaSoloLectura(TRES).comoLista();
+        assertThrows(UnsupportedOperationException.class, () -> comoLista.add("d"));
     }
 
     @Test
-    void esIterable() {
-        var lista = new ListaSoloLectura(List.of("uno", "dos"));
-
-        int cuantos = 0;
-        for (String elemento : lista) {
-            assertFalse(elemento.isBlank());
-            cuantos++;
-        }
-        assertEquals(2, cuantos);
-    }
-
-    @Test
-    void copiaDefensivamenteLaListaRecibida() {
-        var original = new ArrayList<>(List.of("uno"));
+    void cambiarLaListaOriginalNoAfectaALaCopia() {
+        var original = new ArrayList<>(TRES);
         var lista = new ListaSoloLectura(original);
+        original.add("d");
+        assertEquals(3, lista.tamano());
+    }
 
-        original.add("dos");
-
-        assertEquals(1, lista.tamano());
+    @Test
+    void laVersionHeredadaMienteAQuienLaUsaComoLista() {
+        List<String> comoSuperclase = new ListaSoloLecturaHeredada(TRES);
+        assertThrows(UnsupportedOperationException.class, () -> comoSuperclase.add("d"));
     }
 }

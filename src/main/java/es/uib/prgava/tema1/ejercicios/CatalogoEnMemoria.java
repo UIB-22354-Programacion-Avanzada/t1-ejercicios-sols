@@ -1,63 +1,88 @@
 package es.uib.prgava.tema1.ejercicios;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 
 /**
- * Ejercicio 1.2.4. <strong>Solución comentada.</strong> Un catálogo consulta y da de alta, pero
- * <strong>no administra</strong>.
- *
- * <p>Y ahora puede decirlo en el sistema de tipos: implementa dos de las tres interfaces de rol.
- * Con la interfaz grande original habría tenido que implementar los ocho métodos y lanzar
- * {@code UnsupportedOperationException} en tres de ellos, prometiendo algo que no cumple. La
- * prueba {@code unCatalogoSirveComoConsultaYComoAlta} comprueba precisamente que se puede usar
- * en los dos papeles.
+ * Ejercicio 1.2.4. La única de las tres implementaciones que cumple los cuatro roles, así que es la
+ * única que puede declarar {@link GestorDispositivos}. Su código no ha cambiado ni una línea al
+ * dividir la interfaz: no tenía nada que esconder.
  */
-public final class CatalogoEnMemoria implements ConsultaDispositivos, AltaDispositivos {
+public final class CatalogoEnMemoria implements GestorDispositivos {
 
-    // LinkedHashMap: búsqueda por nombre en tiempo constante y, además, listarTodos() devuelve
-    // los dispositivos en el orden en que se registraron, que es lo que espera quien mira la
-    // pantalla. Con un HashMap el orden sería impredecible y cambiaría entre ejecuciones.
-    private final Map<String, FichaDispositivo> fichas = new LinkedHashMap<>();
+    private final List<FichaDispositivo> fichas = new ArrayList<>();
 
-    /**
-     * {@code @Override} no es decorativo: si por error hubiéramos puesto este método en la
-     * interfaz equivocada, o con otra firma, el compilador lo rechazaría aquí. Es la
-     * comprobación que sugiere el enunciado.
-     */
     @Override
-    public Optional<FichaDispositivo> buscarPorNombre(String nombre) {
-        // Optional en vez de null: el tipo de retorno ya avisa de que puede no haber resultado,
-        // y quien llama no puede ignorarlo sin darse cuenta.
-        return Optional.ofNullable(fichas.get(nombre));
+    public void darDeAlta(String nombre, String direccionIp) {
+        if (existe(nombre)) {
+            throw new IllegalArgumentException("ya existe: " + nombre);
+        }
+        fichas.add(new FichaDispositivo(nombre, direccionIp));
     }
 
     @Override
-    public List<FichaDispositivo> listarTodos() {
-        // Copia: quien reciba la lista no debe poder alterar el catálogo a través de ella.
-        return List.copyOf(new ArrayList<>(fichas.values()));
+    public void borrar(String nombre) {
+        for (int i = 0; i < fichas.size(); i++) {
+            if (fichas.get(i).nombre().equals(nombre)) {
+                fichas.remove(i);
+                return;
+            }
+        }
     }
 
     @Override
-    public int contar() {
+    public void renombrar(String nombre, String nuevoNombre) {
+        for (int i = 0; i < fichas.size(); i++) {
+            if (fichas.get(i).nombre().equals(nombre)) {
+                fichas.set(i, new FichaDispositivo(nuevoNombre, fichas.get(i).direccionIp()));
+                return;
+            }
+        }
+    }
+
+    @Override
+    public boolean existe(String nombre) {
+        for (var ficha : fichas) {
+            if (ficha.nombre().equals(nombre)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public List<String> nombres() {
+        var todos = new ArrayList<String>();
+        for (var ficha : fichas) {
+            todos.add(ficha.nombre());
+        }
+        return List.copyOf(todos);
+    }
+
+    @Override
+    public int cuantos() {
         return fichas.size();
     }
 
     @Override
-    public void registrar(FichaDispositivo ficha) {
-        Objects.requireNonNull(ficha, "La ficha no puede ser nula");
-        fichas.put(ficha.nombre(), ficha);
+    public String exportarCsv() {
+        var texto = new StringBuilder();
+        for (var ficha : fichas) {
+            texto.append(ficha.nombre()).append(';').append(ficha.direccionIp()).append('\n');
+        }
+        return texto.toString();
     }
 
     @Override
-    public void eliminar(String nombre) {
-        fichas.remove(nombre);
-        // remove de un nombre inexistente no hace nada y no lanza: eliminar algo que no está es
-        // una operación idempotente, no un error. Si quisiéramos avisar, el método debería
-        // devolver boolean en la interfaz.
+    public String exportarJson() {
+        var texto = new StringBuilder("[");
+        for (int i = 0; i < fichas.size(); i++) {
+            if (i > 0) {
+                texto.append(',');
+            }
+            texto.append("{\"nombre\":\"").append(fichas.get(i).nombre())
+                 .append("\",\"ip\":\"").append(fichas.get(i).direccionIp()).append("\"}");
+        }
+        return texto.append(']').toString();
     }
 }

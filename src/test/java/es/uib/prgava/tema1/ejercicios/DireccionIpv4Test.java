@@ -5,93 +5,108 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * Ejercicio 1.4.2. <strong>Solución comentada.</strong> Pruebas exhaustivas de
+ * Ejercicio 1.4.2. <strong>Solución comentada.</strong> Las pruebas parametrizadas de
  * {@link DireccionIpv4}.
  *
- * <p>Las pruebas mínimas están en {@link DireccionIpv4BasicoTest} y no se repiten aquí: esta
- * clase añade los casos límite y las pruebas parametrizadas.
+ * <p>Una prueba parametrizada es un método con {@code @ParameterizedTest} y una fuente de datos, y se
+ * ejecuta una vez por cada caso. Frente a cinco métodos casi idénticos gana en que los casos se leen
+ * en una tabla —se ve de un golpe qué está cubierto y qué falta, y añadir uno es añadir una línea— y
+ * en que la lógica de la comprobación está escrita una sola vez.
+ *
+ * <p>Y la respuesta al «Para pensar» —qué pierde cuando falla un caso—: nada, si se mira el informe.
+ * JUnit numera y nombra cada invocación, así que el informe dice exactamente qué caso falló. Lo que
+ * sí se pierde es el <em>nombre</em>: cinco métodos con nombres distintos documentan cinco
+ * situaciones, y una tabla documenta una sola situación con cinco datos. Por eso aquí hay varias
+ * pruebas parametrizadas y no una sola con todo dentro: cada una nombra una cosa.
+ *
+ * <p>No se repiten los casos de {@code DireccionIpv4BasicoTest} ni de {@code DireccionIpv4DesdeTest},
+ * como pedía el enunciado.
  */
 class DireccionIpv4Test {
 
-    /**
-     * Cada texto inválido por un motivo distinto: pocas partes, demasiadas, parte no numérica,
-     * partes vacías por puntos consecutivos, cadena vacía y solo espacios. Buscar un motivo
-     * diferente para cada caso, en vez de seis variantes del mismo, es lo que hace útil una
-     * batería de pruebas.
-     */
+    // ---------------------------------------------------------------- los octetos, con @ValueSource
+
     @ParameterizedTest
-    @ValueSource(strings = {"1.2.3", "1.2.3.4.5", "a.b.c.d", "1.2..4", "", "   ", "192.168.1"})
-    void losTextosInvalidosSeRechazan(String texto) {
+    @ValueSource(ints = { -1000, -1, 256, 300, 1000 })
+    void unOctetoFueraDeRangoEsRechazadoEnCualquieraDeLasCuatroPosiciones(int malo) {
+        // El mismo valor inválido en las cuatro posiciones: si la validación se olvidara de una, esta
+        // prueba lo dice. Es el error que se comete al escribir cuatro if a mano en lugar de un
+        // método auxiliar, y la razón de que la solución extraiga validarOcteto.
+        assertThrows(IllegalArgumentException.class, () -> new DireccionIpv4(malo, 0, 0, 0));
+        assertThrows(IllegalArgumentException.class, () -> new DireccionIpv4(0, malo, 0, 0));
+        assertThrows(IllegalArgumentException.class, () -> new DireccionIpv4(0, 0, malo, 0));
+        assertThrows(IllegalArgumentException.class, () -> new DireccionIpv4(0, 0, 0, malo));
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = { 0, 1, 254, 255 })
+    void losCuatroValoresLimiteDelRangoSonValidos(int bueno) {
+        // Los límites van siempre en pareja: 0 y 255 valen (se prueban aquí), -1 y 256 no (arriba).
+        // Probar solo un lado de un límite deja pasar el < escrito como <=.
+        assertEquals(bueno, new DireccionIpv4(bueno, bueno, bueno, bueno).primero());
+    }
+
+    @Test
+    void elMensajeDelErrorNombraElOctetoCulpableYNoLaDireccionEntera() {
+        var error = assertThrows(IllegalArgumentException.class,
+                () -> new DireccionIpv4(192, 168, 1, 300));
+        assertEquals("Octeto fuera de rango: 300", error.getMessage());
+    }
+
+    // ---------------------------------------------------------------- desde y toString, con @CsvSource
+
+    @ParameterizedTest
+    @CsvSource({
+            "0.0.0.0,                0,   0,   0,   0",
+            "10.0.0.1,              10,   0,   0,   1",
+            "192.168.1.1,          192, 168,   1,   1",
+            "255.255.255.255,      255, 255, 255, 255",
+            "  172.16.0.1  ,       172,  16,   0,   1"      // con espacios alrededor
+    })
+    void desdeConstruyeLaDireccionQueDiceElTexto(String texto, int a, int b, int c, int d) {
+        assertEquals(new DireccionIpv4(a, b, c, d), DireccionIpv4.desde(texto));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "0.0.0.0",
+            "10.0.0.1",
+            "192.168.1.1",
+            "255.255.255.255"
+    })
+    void desdeYToStringSonInversosElUnoDelOtro(String texto) {
+        // La propiedad que de verdad importa, y que una tabla de parejas texto-resultado no dice:
+        // que las dos conversiones encajen. Si una cambiara de formato, esta prueba lo detecta.
+        assertEquals(texto, DireccionIpv4.desde(texto).toString());
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "10.0.0",                // tres partes
+            "10.0.0.1.1",            // cinco
+            "10.0.0.x",              // una que no es un número
+            "10..0.1",               // una vacía
+            "''",                    // cadena vacía
+            "'   '",                 // en blanco
+            "10.0.0.256"             // formato bien, rango mal
+    })
+    void desdeRechazaLosTextosQueNoSonUnaDireccion(String texto) {
         assertThrows(IllegalArgumentException.class, () -> DireccionIpv4.desde(texto));
     }
 
-    /**
-     * {@code @CsvSource} permite varios parámetros por fila. Las cuatro primeras filas son los
-     * <strong>bordes del rango 172.16/12</strong>, que es el que concentra los errores: es fácil
-     * escribir {@code segundo == 16} y perder el resto, o pasarse hasta 172.32.
-     */
-    @ParameterizedTest
-    @CsvSource({
-            "172.15.0.1,     false",     // justo por debajo del rango
-            "172.16.0.1,     true",      // primer valor del rango
-            "172.31.255.255, true",      // último valor del rango
-            "172.32.0.1,     false",     // justo por encima
-            "10.0.0.1,       true",      // 10/8: cualquier segundo octeto vale
-            "10.255.255.255, true",
-            "192.168.0.1,    true",      // 192.168/16
-            "192.167.0.1,    false",     // 192.167 NO es privada
-            "8.8.8.8,        false",
-            "172.16.0.0,     true"
-    })
-    void reconoceLosRangosPrivadosIncluidosLosBordes(String texto, boolean esperado) {
-        assertEquals(esperado, DireccionIpv4.desde(texto).esPrivada(),
-                "fallo con la dirección " + texto);
-    }
-
-    /**
-     * Las tres propiedades que un record da hechas, comprobadas juntas con {@code assertAll}
-     * porque forman un solo concepto: «esto se comporta como un valor».
-     */
-    @Test
-    void seComportaComoUnValor() {
-        var una = new DireccionIpv4(192, 168, 1, 1);
-        var otra = new DireccionIpv4(192, 168, 1, 1);
-        var distinta = new DireccionIpv4(192, 168, 1, 2);
-
-        assertAll(
-                () -> assertEquals("192.168.1.1", una.toString()),
-                () -> assertEquals(una, otra),
-                () -> assertEquals(una.hashCode(), otra.hashCode()),
-                () -> assertNotEquals(una, distinta),
-                () -> assertEquals(192, una.primero()),
-                () -> assertEquals(1, una.cuarto()));
-    }
-
-    /**
-     * Valores límite de un octeto: 0 y 255 son válidos, −1 y 256 no. Los cuatro en una sola
-     * prueba porque comprueban la misma regla desde sus cuatro esquinas.
-     */
-    @Test
-    void losValoresLimiteDeUnOcteto() {
-        assertAll(
-                () -> assertEquals("0.0.0.0", new DireccionIpv4(0, 0, 0, 0).toString()),
-                () -> assertEquals("255.255.255.255", new DireccionIpv4(255, 255, 255, 255).toString()),
-                () -> assertThrows(IllegalArgumentException.class, () -> new DireccionIpv4(-1, 0, 0, 0)),
-                () -> assertThrows(IllegalArgumentException.class, () -> new DireccionIpv4(0, 0, 0, 256)));
-    }
-
-    @Test
-    void elMensajeDeErrorDiceQueOctetoFalla() {
-        var error = assertThrows(IllegalArgumentException.class,
-                () -> new DireccionIpv4(1, 300, 3, 4));
-
-        // El valor concreto en el mensaje es lo que convierte un error en un diagnóstico.
-        assertEquals("Octeto fuera de rango: 300", error.getMessage());
-    }
+    // ----------------------------------------------------------------------------------
+    // NOTA sobre el último caso de la tabla anterior, "10.0.0.256": el formato es correcto y lo que
+    // falla es el rango, y aun así la excepción es la misma. No es casualidad: desde() no vuelve a
+    // comprobar el rango, se lo deja al constructor canónico, y el constructor lanza
+    // IllegalArgumentException. Esa es la ventaja de tener un único punto de validación, y aquí se
+    // ve en la prueba: un solo assertThrows cubre los dos motivos.
+    //
+    // Nótese también que NumberFormatException, que es lo que lanza Integer.parseInt, ES una
+    // IllegalArgumentException. La prueba pasaría incluso sin el bloque try/catch de la solución; lo
+    // que ese bloque añade es un mensaje que menciona el texto completo, no solo la parte que falló.
+    // ----------------------------------------------------------------------------------
 }

@@ -1,93 +1,67 @@
 package es.uib.prgava.tema1.ejercicios;
 
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.List;
 
 import es.uib.prgava.tema1.monitor.Resultado;
-import es.uib.prgava.tema1.monitor.Servicio;
-import es.uib.prgava.tema1.monitor.Sonda;
 
 /**
- * Ejercicio 1.4.5. <strong>Solución comentada.</strong> Versión refactorizada para poder probarla.
+ * Ejercicio 1.4.4. <strong>Solución comentada.</strong> La misma clase, con el reloj fuera.
  *
- * <p>La versión original tenía dos dependencias ocultas, y las dos son casos clásicos:
+ * <p>La versión de partida llamaba a {@code Instant.now()} por dentro, en dos métodos. Eso la hacía
+ * imposible de probar: el resultado dependía del momento exacto de la ejecución, y una prueba que a
+ * veces pasa y a veces no es peor que no tenerla, porque enseña al equipo a ignorar los fallos.
  *
- * <ul>
- *   <li><strong>El reloj.</strong> {@code Instant.now()} lee el reloj del sistema, que no se puede
- *       controlar desde una prueba. Para comprobar «lleva caído más de cinco minutos» habría que
- *       esperar cinco minutos de verdad, o manipular la hora del ordenador. Por eso Java ofrece
- *       {@link Clock} como abstracción: {@code Clock.systemUTC()} en producción y
- *       {@code Clock.fixed(...)} en las pruebas.</li>
- *   <li><strong>La sonda.</strong> {@code new SondaSimulada(System.nanoTime(), ...)} se fabricaba
- *       una sonda con semilla aleatoria: cada ejecución daba un resultado distinto. Una prueba
- *       sobre eso no puede afirmar nada.</li>
- * </ul>
+ * <p>El arreglo es de una línea por método: <strong>el instante actual entra como parámetro</strong>.
+ * Ni un reloj inyectado por constructor, ni una biblioteca de tiempo falso; el enunciado avisaba de
+ * que basta con eso, y es cierto casi siempre. La clase deja de preguntar la hora y pasa a recibirla,
+ * que es el mismo movimiento del ejercicio 1.2.5 con el repositorio y la salida.
  *
- * <p>La refactorización consiste exactamente en subir esas dos decisiones al constructor. El
- * comportamiento no cambia; lo que cambia es quién elige las piezas. Es la misma operación del
- * ejercicio 1.2.5, aplicada a dos dependencias que no parecen dependencias — y por eso este
- * ejercicio va al final: {@code Instant.now()} y {@code new} se cuelan en el código sin que nadie
- * los perciba como un acoplamiento.
- *
- * <p>Con las dependencias fuera, {@code DetectorDeCaidasTest} comprueba los valores límite
- * —justo por debajo y justo en el umbral— en milisegundos y de forma completamente determinista.
+ * <p>Quien la use en el programa de verdad escribe {@code detector.fallosRecientes(historial,
+ * Instant.now())}, y el {@code Instant.now()} queda en el cableado, que es su sitio: un solo lugar,
+ * visible, y que nadie intenta probar.
  */
-public final class DetectorDeCaidas {
+public class DetectorDeCaidas {
 
-    private final Sonda sonda;
-    private final Clock reloj;
-    private final Duration umbral;
-    private final Map<Servicio, Instant> primerFallo = new HashMap<>();
+    private final Duration ventana;
 
-    /**
-     * Constructor principal: recibe todo lo que necesita. No hay ningún {@code new} de
-     * colaboradores ni ninguna llamada estática al entorno dentro de la clase.
-     */
-    public DetectorDeCaidas(Sonda sonda, Clock reloj, Duration umbral) {
-        this.sonda = Objects.requireNonNull(sonda, "La sonda no puede ser nula");
-        this.reloj = Objects.requireNonNull(reloj, "El reloj no puede ser nulo");
-        this.umbral = Objects.requireNonNull(umbral, "El umbral no puede ser nulo");
+    public DetectorDeCaidas(Duration ventana) {
+        this.ventana = ventana;
     }
 
     /**
-     * Constructor de conveniencia para producción: reloj del sistema.
+     * Fallos ocurridos dentro de la ventana que termina en {@code ahora}.
      *
-     * <p>Fíjate en que la comodidad se ofrece <em>además</em>, sin quitar la posibilidad de
-     * inyectar. Es el equilibrio razonable: quien no necesita controlar el reloj no tiene que
-     * pensar en él, y quien sí lo necesita —las pruebas— puede.
+     * @param ahora el instante que hace de «ahora»; en el programa, {@code Instant.now()}; en una
+     *        prueba, un instante fijo elegido por ella
      */
-    public DetectorDeCaidas(Sonda sonda, Duration umbral) {
-        this(sonda, Clock.systemUTC(), umbral);
-    }
-
-    /**
-     * Comprueba el servicio y devuelve {@code true} si lleva caído al menos el umbral.
-     *
-     * <p>Un servicio que responde deja de estar en seguimiento.
-     */
-    public boolean estaCaido(Servicio servicio) {
-        Resultado resultado = sonda.sondear(servicio);
-
-        if (!resultado.esFallo()) {
-            primerFallo.remove(servicio);      // se recuperó: la cuenta vuelve a empezar
-            return false;
+    public int fallosRecientes(List<Resultado> historial, Instant ahora) {
+        var desde = ahora.minus(ventana);
+        int fallos = 0;
+        for (var resultado : historial) {
+            if (resultado.esFallo() && resultado.instante().isAfter(desde)) {
+                fallos++;
+            }
         }
-
-        // Instant.now(reloj), no Instant.now(): es el cambio de una palabra que hace la clase
-        // comprobable. Con un Clock.fixed, esta llamada devuelve siempre el mismo instante.
-        Instant ahora = Instant.now(reloj);
-
-        // putIfAbsent: el primer fallo fija el inicio de la caída; los siguientes no lo tocan.
-        primerFallo.putIfAbsent(servicio, ahora);
-
-        Duration caido = Duration.between(primerFallo.get(servicio), ahora);
-        // >= 0 y no > 0: "al menos el umbral" incluye el umbral exacto. Ese borde es uno de los
-        // tres casos que pide probar el enunciado, y el sitio donde se cuelan los errores de
-        // uno en uno.
-        return caido.compareTo(umbral) >= 0;
+        return fallos;
     }
+
+    /** ¿Ha pasado ya la ventana desde el último aviso, visto desde {@code ahora}? */
+    public boolean tocaAvisar(Instant ultimoAviso, Instant ahora) {
+        return Duration.between(ultimoAviso, ahora).compareTo(ventana) >= 0;
+    }
+
+    // ----------------------------------------------------------------------------------
+    // RESPUESTA al «Para pensar»: qué principio de 1.2 estaba violando esta clase.
+    //
+    // El D, la inversión de dependencias, y con el mismo síntoma que InformeDiarioAcoplado en 1.2.5:
+    // se conseguía por dentro algo que debía recibir de fuera. `Instant.now()` es una llamada a un
+    // colaborador —el reloj del sistema— igual que `new RepositorioEnMemoria()` era un colaborador; la
+    // única diferencia es que el reloj no parece un colaborador porque no se escribe con `new`.
+    //
+    // De ahí la regla que cierra la sección 1.4: el tiempo y el azar son dependencias. Cuando una
+    // clase es difícil de probar, casi nunca es un problema de las pruebas; es que la clase está
+    // decidiendo cosas que no le tocan.
+    // ----------------------------------------------------------------------------------
 }

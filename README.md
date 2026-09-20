@@ -1,6 +1,6 @@
 # t1-ejercicios-sols — Soluciones del Tema 1
 
-Soluciones comentadas de los **28 ejercicios** del Tema 1 de *Programación Avanzada (22354)*,
+Soluciones comentadas de los **26 ejercicios** del Tema 1 de *Programación Avanzada (22354)*,
 Grado en Ingeniería Telemática, UIB-EPS.
 
 > ⚠️ **Repositorio privado, uso docente.** Es la contrapartida de
@@ -19,9 +19,10 @@ Los comentarios están escritos para ser leídos, no para adornar. Tres tipos:
 - **Javadoc de la clase** — la decisión de diseño de fondo: por qué un `record` y no una clase,
   por qué composición y no herencia, qué principio SOLID está en juego.
 - **Comentarios de línea** — el detalle que se pasa por alto: por qué `List.copyOf` y no la
-  colección interna, por qué `>=` y no `>`, por qué `Locale` explícito.
-- **Bloques de respuesta al final de la clase** — las preguntas que el enunciado pide contestar
-  por escrito, contestadas. Son las que se preguntan en el examen.
+  colección interna, por qué `>=` y no `>`, por qué `Math.max(0, ...)`.
+- **Bloques de respuesta al final de la clase** — las preguntas que el enunciado deja abiertas,
+  contestadas. Incluidas las de **«Para pensar»**, que no tienen respuesta en el tema y son
+  exactamente el tipo de pregunta del Examen Parcial.
 
 ## Comprobación
 
@@ -29,58 +30,87 @@ Los comentarios están escritos para ser leídos, no para adornar. Tres tipos:
 mvn test
 ```
 
-Debe terminar en `BUILD SUCCESS` con **todas** las pruebas pasando. Compara con el esqueleto,
-donde lo correcto es que fallen 86 de 88.
+Debe dar **172 pruebas, todas en verde**. Si alguna falla, la solución y su prueba se han
+desincronizado: es el primer sitio donde mirar antes de tocar un enunciado.
 
-Las pruebas incluyen las que en el esqueleto son el entregable del alumnado —los ejercicios 1.4.1
-a 1.4.5—, aquí escritas: `FallosEnVentanaTest`, `DireccionIpv4Test`, `MonitorTest`,
-`ConfiguracionMonitorTest` y `DetectorDeCaidasTest`. También están descomentadas
-`ServicioPingTest` (1.1.5) y la última prueba de `CopiasEjercicioTest` (1.3.3), que en el
-esqueleto ni siquiera compilan hasta resolver el ejercicio.
+De los 26 ejercicios, 22 traen sus pruebas escritas en la plantilla y los cuatro de la sección 1.4
+son precisamente pruebas; aquí están todas, así que el proyecto cubre los 26.
 
-Programas ejecutables, por si quieres enseñar la salida en clase:
+Además hay cuatro programas que conviene ejecutar al menos una vez, porque su **salida** es parte
+de la explicación:
 
 ```bash
 mvn -q compile
-java -cp target/classes es.uib.prgava.tema1.ejercicios.DemoEtiqueta
-java -cp target/classes es.uib.prgava.tema1.ejercicios.LectorUmbrales
-java -cp target/classes es.uib.prgava.tema1.monitor.Principal servicios.txt
+java -cp target/classes es.uib.prgava.tema1.ejercicios.DemoEtiqueta         # 1.1.3
+java -cp target/classes es.uib.prgava.tema1.ejercicios.DiagnosticoLiskov    # 1.2.3
+java -cp target/classes es.uib.prgava.tema1.monitor.Principal               # 1.2.2, 1.2.6, 1.2.7
+java -cp target/classes es.uib.prgava.tema1.ejercicios.DemoPoliticasLambda  # 1.3.4
 ```
 
-`LectorUmbrales` termina lanzando una excepción **a propósito**: el ejercicio 1.1.6 consiste en
-leer su stack trace, que está transcrito y comentado al final de esa clase.
+## Dónde está cada ejercicio
 
-## Diferencias respecto al esqueleto, una por una
-
-| Ejercicio | Qué cambia respecto a `t1-ejercicios` |
+| Ejercicio | Clases |
 |---|---|
-| 1.1.1 | `DireccionIpv4` completa; validación en el constructor compacto |
-| 1.1.2 | `Servidor` con contador estático, `equals`/`hashCode` por dirección y puerto |
-| 1.1.3 | `Etiqueta` con `hashCode`; `DemoEtiqueta` con la salida antes y después |
-| 1.1.4 | `PuntoAcceso` con validación de canal extraída a método privado |
-| 1.1.5 | **Clase nueva** `ServicioPing`, más `permits` y `Descripciones` ampliados |
-| 1.1.6 | `LectorUmbrales` con `try-with-resources` y causas encadenadas |
-| 1.2.1 | `EstadisticasSensor` y `ExportadorCsv` separadas |
-| 1.2.2 | `FallosEnVentana` implementada |
-| 1.2.3 | `ListaSoloLectura` por composición |
-| 1.2.4 | Las tres interfaces de rol, con `GestorDispositivos` como suma |
-| 1.2.5 | `InformeDiario` con `LectorResultados` y `Consumer` inyectados |
-| 1.2.6 | `NotificadorFichero` en modo APPEND |
-| 1.2.7 | `SondaConRegistro`, con la nota sobre el orden de los decoradores |
-| 1.2.8 | `PoliticaDeAlerta.desde` |
-| 1.2.9 | `ConfiguracionInforme` con Builder e `InformeResumen` |
-| 1.3.1–1.3.5 | `Historial`, `UtilidadesEjercicio`, `CopiasEjercicio` (PECS), `TestigoDeTipo`, `Borrado` documentado, `Criterios` |
-| 1.3.6–1.3.8 | `InformesEjercicio` completa, con las dos versiones de la racha máxima |
-| 1.4.1–1.4.5 | Las cinco clases de prueba escritas, más `NotificadorEspia`, `SondaProgramada` y `DetectorDeCaidas` refactorizado con `Clock` |
+| 1.1.1 | `ejercicios/DireccionIpv4` (constructor compacto y `toString`) |
+| 1.1.2 | `ejercicios/Servidor` |
+| 1.1.3 | `ejercicios/Etiqueta`, `ejercicios/DemoEtiqueta` |
+| 1.1.4 | `ejercicios/PuntoAcceso` |
+| 1.1.5 | `ejercicios/PanelDeEstado` (y `PanelDeEstadoHeredado`, sin corregir, como testigo) |
+| 1.1.6 | `ejercicios/Sensor`, `SensorTemperatura`, `SensorHumedad` |
+| 1.1.7 | `ejercicios/Identificable`, `ejercicios/Inventario` |
+| 1.1.8 | `ejercicios/DireccionIpv4` (`compareTo`) |
+| 1.2.1 | `ejercicios/RegistroSensores` (fachada) + `LecturasSensor`, `MediaDeLecturas`, `DecisionDeAviso`, `TextoDelAviso` |
+| 1.2.2 | `monitor/FallosEnVentana` |
+| 1.2.3 | `ejercicios/ListaSoloLectura`, `ejercicios/DiagnosticoLiskov` |
+| 1.2.4 | `ejercicios/GestorDispositivos` + `AltaDeDispositivos`, `ConsultaDeDispositivos`, `ExportacionCsv`, `ExportacionJson` |
+| 1.2.5 | `ejercicios/InformeDiario`, `Salida`, `SalidaPorConsola` |
+| 1.2.6 | `monitor/NotificadorSinRepetir` |
+| 1.2.7 | `ejercicios/DireccionIpv4` (`desde`), `monitor/ServicioPing`, `monitor/Servicio` |
+| 1.2.8 | `monitor/SondaDeterminista` |
+| 1.3.1 | `ejercicios/Historial` |
+| 1.3.2 | `ejercicios/UtilidadesEjercicio` |
+| 1.3.3 | `ejercicios/CopiasEjercicio` |
+| 1.3.4 | `ejercicios/Criterios`, `ejercicios/DemoPoliticasLambda` |
+| 1.3.5 y 1.3.6 | `ejercicios/InformesEjercicio` |
+| 1.4.1 | `monitor/FallosEnVentanaTest` |
+| 1.4.2 | `ejercicios/DireccionIpv4Test` |
+| 1.4.3 | `monitor/SondaProgramada`, `NotificadorEspia`, `MonitorEjercicioTest` |
+| 1.4.4 | `ejercicios/DetectorDeCaidas`, `ejercicios/DetectorDeCaidasTest` |
 
-## Una corrección que conviene llevar también al esqueleto
+Las clases de `poo`, `genericos` y el resto de `monitor` son copia exacta del código del tema, la
+misma que hay en [`t1-ejemplos`](https://github.com/UIB-22354-Programacion-Avanzada/t1-ejemplos),
+con dos excepciones que los ejercicios obligan a tocar: `monitor/Servicio` reconoce el prefijo
+`ping:` (1.2.7) y `monitor/Principal` cablea la política y el notificador nuevos (1.2.2 y 1.2.6).
 
-Los ficheros `umbrales.txt` y `umbrales-con-error.txt` de `t1-ejercicios` se generaron con `\n`
-literales en lugar de saltos de línea reales: son una sola línea. Aquí están corregidos. Las
-pruebas no lo detectan porque `LectorUmbralesTest` crea sus propios ficheros temporales, pero
-`LectorUmbrales.main` sí los usa.
+## Diferencias respecto a la plantilla
+
+Lo que hay aquí y no en `t1-ejercicios`:
+
+- los cuerpos de todos los métodos, comentados;
+- las clases que el estudiante tiene que crear y que por tanto no podían estar en el esqueleto:
+  las cuatro de la separación de `RegistroSensores`, las cuatro interfaces de la división de
+  `GestorDispositivos`, `SalidaPorConsola`, `DiagnosticoLiskov` y `DemoPoliticasLambda`;
+- las pruebas de la sección 1.4, que en la plantilla son el entregable;
+- en `CopiasEjercicioTest`, las dos pruebas que allí están comentadas porque no compilan hasta
+  aplicar PECS;
+- en `GestorDispositivosTest`, la prueba que allí queda marcada con un `// TODO`.
+
+Nada de lo demás cambia: los ficheros de configuración, el `pom.xml` y el flujo de trabajo son los
+mismos, de modo que un `diff -r` entre los dos repositorios muestra exactamente el trabajo del
+alumnado.
+
+## Cómo usarlo en clase
+
+Las soluciones no están pensadas para entregarse, sino para **corregir y discutir**. Los bloques de
+respuesta al final de cada clase están escritos como se espera que las conteste el alumnado en el
+Examen Parcial: en prosa, nombrando el principio y explicando la consecuencia práctica. Sirven de
+rúbrica.
+
+Conviene no publicar esta página ni este repositorio junto a los enunciados. La página de
+soluciones del sitio web se mantiene vacía mientras los ejercicios estén en uso.
 
 ## Licencia
 
-Mismo copyright que el resto del material del curso. **No redistribuir**: este repositorio existe
-para el profesorado de la asignatura.
+Mismo régimen que `t1-ejercicios`: el código, bajo licencia [MIT](LICENSE) — copyright © 2026
+Alejandro Mesejo. El material docente del sitio web, bajo
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en).

@@ -1,31 +1,35 @@
 package es.uib.prgava.tema1.ejercicios;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 
 /**
- * Ejercicio 1.2.1. <strong>Solución comentada.</strong> Solo escribe: no sabe nada de sensores
- * ni de estadísticas.
+ * Ejercicio 1.2.4. Solo exporta: recibe las fichas ya hechas y las convierte a texto.
  *
- * <p>Esa ignorancia es justo lo que la hace reutilizable. Sirve para exportar las estadísticas
- * de un sensor, un informe de disponibilidad o cualquier otra cosa que sepa describirse como una
- * lista de líneas. Si recibiera un {@code EstadisticasSensor}, solo serviría para eso.
+ * <p>De los ocho métodos de la interfaz original le interesaba uno, y los otros siete los escribía
+ * vacíos o lanzando excepciones. Ahora declara {@link ExportacionCsv} y nada más.
+ *
+ * <p>{@code cuantos()} sigue aquí, porque es información que esta clase sí tiene y alguien usa, pero
+ * <strong>ya no forma parte de ninguna interfaz que declare</strong>: es un método propio. Eso es
+ * otra parte de la lección: un método público no tiene por qué venir de una interfaz.
  */
-public final class ExportadorCsv {
+public final class ExportadorCsv implements ExportacionCsv {
 
-    /** Escribe una línea por fila. Traduce la {@code IOException} a {@code UncheckedIOException}. */
-    public void escribir(Path destino, List<String> filas) {
-        try {
-            // Files.write con un Iterable<String> escribe una línea por elemento, con el
-            // separador de línea de la plataforma y en UTF-8. No hace falta bucle ni Writer.
-            Files.write(destino, filas);
-        } catch (IOException e) {
-            // Misma decisión que en el ejercicio 1.1.6: la firma del método queda libre de
-            // excepciones comprobadas, y la causa original se conserva para depurar.
-            throw new UncheckedIOException("No se pudo escribir " + destino, e);
+    private final List<FichaDispositivo> fichas;
+
+    public ExportadorCsv(List<FichaDispositivo> fichas) {
+        this.fichas = List.copyOf(fichas);
+    }
+
+    @Override
+    public String exportarCsv() {
+        var texto = new StringBuilder();
+        for (var ficha : fichas) {
+            texto.append(ficha.nombre()).append(';').append(ficha.direccionIp()).append('\n');
         }
+        return texto.toString();
+    }
+
+    public int cuantos() {
+        return fichas.size();
     }
 }

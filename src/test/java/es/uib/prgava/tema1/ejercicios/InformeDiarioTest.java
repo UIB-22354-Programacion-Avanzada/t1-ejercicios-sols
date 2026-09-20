@@ -7,31 +7,44 @@ import org.junit.jupiter.api.Test;
 
 import es.uib.prgava.tema1.monitor.RepositorioEnMemoria;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/** Ejercicio 1.2.5. Ninguna de estas pruebas escribe en la consola. */
+/** Ejercicio 1.2.5: se prueba sin mirar la consola, que es de lo que se trataba. */
 class InformeDiarioTest {
 
-    @Test
-    void emiteElInformeAlConsumerRecibido() {
-        var repositorio = new RepositorioEnMemoria();
-        Datos.historialDeEjemplo().forEach(repositorio::guardar);
-        List<String> lineas = new ArrayList<>();
+    /** Salida de mentira: en lugar de imprimir, guarda. */
+    private static final class SalidaGuardada implements Salida {
+        private final List<String> lineas = new ArrayList<>();
 
-        new InformeDiario(repositorio, lineas::add).emitir();
-
-        assertFalse(lineas.isEmpty(), "el informe no ha emitido ninguna línea");
-        assertTrue(lineas.stream().anyMatch(l -> l.contains("dns:uib.es")),
-                "esperaba una línea para dns:uib.es, y obtuve " + lineas);
+        @Override
+        public void escribir(String linea) {
+            lineas.add(linea);
+        }
     }
 
     @Test
-    void unRepositorioVacioNoRompeElInforme() {
-        List<String> lineas = new ArrayList<>();
+    void escribeElInformeEnLaSalidaQueSeLePasa() {
+        var repositorio = new RepositorioEnMemoria();
+        for (var resultado : Datos.historialMezclado()) {
+            repositorio.guardar(resultado);
+        }
+        var salida = new SalidaGuardada();
 
-        new InformeDiario(new RepositorioEnMemoria(), lineas::add).emitir();
+        new InformeDiario(repositorio, salida).emitir(Datos.WEB);
 
-        assertFalse(lineas.isEmpty(), "al menos debe emitirse la cabecera");
+        assertEquals(List.of(
+                "servicio: " + Datos.WEB.nombre(),
+                "comprobaciones: 3",
+                "fallos: 1"), salida.lineas);
+    }
+
+    @Test
+    void conUnRepositorioVacioNoInventaDatos() {
+        var salida = new SalidaGuardada();
+        new InformeDiario(new RepositorioEnMemoria(), salida).emitir(Datos.WEB);
+        assertEquals(List.of(
+                "servicio: " + Datos.WEB.nombre(),
+                "comprobaciones: 0",
+                "fallos: 0"), salida.lineas);
     }
 }

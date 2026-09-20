@@ -3,38 +3,38 @@ package es.uib.prgava.tema1.ejercicios;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Ejercicio 1.1.1. Pruebas mínimas de la dirección IPv4.
- *
- * <p>Las pruebas exhaustivas, con casos límite y pruebas parametrizadas, son el ejercicio 1.4.2.
+ * Pruebas mínimas del ejercicio 1.1.1, para que no te quedes sin comprobación hasta que
+ * escribas las tuyas en 1.4.2. No repitas estos casos allí.
  */
 class DireccionIpv4BasicoTest {
 
     @Test
-    void desdeInterpretaLosCuatroOctetos() {
-        assertEquals(new DireccionIpv4(192, 168, 1, 1), DireccionIpv4.desde("192.168.1.1"));
+    void losExtremosDelRangoSonValidos() {
+        assertEquals(0, new DireccionIpv4(0, 0, 0, 0).primero());
+        assertEquals(255, new DireccionIpv4(255, 255, 255, 255).cuarto());
     }
 
     @Test
-    void toStringDevuelveLaFormaHabitual() {
-        assertEquals("10.0.0.1", new DireccionIpv4(10, 0, 0, 1).toString());
+    void unOctetoFueraDeRangoEsRechazado() {
+        assertThrows(IllegalArgumentException.class, () -> new DireccionIpv4(192, 168, 1, 256));
+        assertThrows(IllegalArgumentException.class, () -> new DireccionIpv4(-1, 0, 0, 0));
     }
 
     @Test
-    void octetoFueraDeRangoEsRechazado() {
-        var error = assertThrows(IllegalArgumentException.class,
-                () -> new DireccionIpv4(1, 2, 3, 256));
-        assertEquals("Octeto fuera de rango: 256", error.getMessage());
+    void elToStringEsLaFormaConPuntos() {
+        assertEquals("192.168.1.1", new DireccionIpv4(192, 168, 1, 1).toString());
     }
 
     @Test
-    void reconoceLosRangosPrivados() {
-        assertTrue(DireccionIpv4.desde("10.1.2.3").esPrivada());
-        assertTrue(DireccionIpv4.desde("192.168.0.1").esPrivada());
-        assertFalse(DireccionIpv4.desde("8.8.8.8").esPrivada());
+    void dosObjetosDistintosConLosMismosOctetosSonIguales() {
+        var una = new DireccionIpv4(10, 0, 0, 1);
+        var otra = new DireccionIpv4(10, 0, 0, 1);
+        assertNotSame(una, otra);
+        assertEquals(una, otra);
+        assertEquals(una.hashCode(), otra.hashCode());
     }
 }

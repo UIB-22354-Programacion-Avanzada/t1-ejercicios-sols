@@ -1,9 +1,7 @@
 package es.uib.prgava.tema1.ejercicios;
 
 /**
- * Ejercicio 1.1.1. Dirección IPv4 como cuatro octetos.
- *
- * <p><strong>Solución comentada.</strong>
+ * Ejercicios 1.1.1, 1.1.7, 1.1.8 y 1.2.7. <strong>Solución comentada.</strong>
  *
  * <p>Por qué un {@code record} y no una clase: una dirección IP es un <em>valor</em>, no una
  * entidad. Dos direcciones con los mismos cuatro octetos son la misma dirección, no hay estado
@@ -11,19 +9,23 @@ package es.uib.prgava.tema1.ejercicios;
  * {@code record}: el compilador genera el constructor canónico, los accesores, {@code equals},
  * {@code hashCode} y {@code toString}.
  *
- * <p>Por eso el enunciado pide no escribir {@code equals} ni {@code hashCode}: el {@code equals}
- * generado ya compara componente a componente, que es justo la igualdad que queremos, y el
- * {@code hashCode} generado es coherente con él. Escribirlos a mano sería repetir trabajo del
- * compilador e introducir la posibilidad de que se descoordinen (el defecto del ejercicio 1.1.3).
+ * <p>Por eso el enunciado prohíbe escribir {@code equals} y {@code hashCode}: el generado ya
+ * compara componente a componente, que es justo la igualdad que queremos, y su {@code hashCode}
+ * es coherente con él por construcción. Escribirlos a mano sería repetir trabajo del compilador
+ * e introducir la posibilidad de que se descoordinen, que es el defecto del ejercicio 1.1.3.
+ *
+ * <p>Un {@code record} no puede heredar de una clase, pero sí implementar tantas interfaces como
+ * quiera: aquí, {@link Identificable} (1.1.7) y {@code Comparable} (1.1.8).
  */
-public record DireccionIpv4(int primero, int segundo, int tercero, int cuarto) {
+public record DireccionIpv4(int primero, int segundo, int tercero, int cuarto)
+        implements Identificable, Comparable<DireccionIpv4> {
 
     /**
      * Constructor compacto: se ejecuta antes de asignar los campos y es el lugar donde se
-     * establece el <strong>invariante</strong> de la clase — «los cuatro octetos están entre 0 y
-     * 255»—. Al validar aquí, y como los campos de un record son finales, es imposible que exista
-     * un objeto {@code DireccionIpv4} con un octeto inválido: no hay que volver a comprobarlo en
-     * ningún otro sitio.
+     * establece el <strong>invariante</strong> de la clase —«los cuatro octetos están entre 0 y
+     * 255»—. Como los campos de un {@code record} son finales y esta es la única puerta de
+     * entrada, es imposible que exista un objeto con un octeto inválido: no hay que volver a
+     * comprobarlo en ningún otro sitio, ni en {@code desde}, ni en las clases que lo usen.
      */
     public DireccionIpv4 {
         validarOcteto(primero);
@@ -34,7 +36,12 @@ public record DireccionIpv4(int primero, int segundo, int tercero, int cuarto) {
 
     /**
      * Un único punto de validación, invocado cuatro veces. La alternativa —cuatro {@code if}
-     * copiados— repite la condición y el mensaje, y es donde acaban apareciendo las erratas.
+     * copiados— repite la condición y el mensaje, y cuatro copias de una regla son cuatro sitios
+     * que alguien tiene que acordarse de cambiar a la vez.
+     *
+     * <p>Es un método de clase ({@code static}) porque no consulta ningún campo: opera solo sobre
+     * su argumento. Y tiene que serlo, además, porque se llama desde el constructor compacto,
+     * antes de que el objeto exista.
      */
     private static void validarOcteto(int valor) {
         if (valor < 0 || valor > 255) {
@@ -43,22 +50,28 @@ public record DireccionIpv4(int primero, int segundo, int tercero, int cuarto) {
     }
 
     /**
-     * Fábrica estática. Tiene dos ventajas sobre un constructor que recibiera un {@code String}:
-     * el nombre dice qué hace ({@code desde} frente a otro constructor más), y permite validar y
-     * traducir el formato textual antes de llegar al constructor canónico.
+     * Ejercicio 1.2.7. Fábrica estática: construye la dirección a partir de su forma textual.
      *
-     * @throws IllegalArgumentException si no hay cuatro partes o alguna no es un entero
+     * <p>Dos ventajas sobre un constructor que recibiera un {@code String}: el nombre dice qué
+     * hace, y puede traducir y comprobar el formato antes de llegar al constructor canónico.
+     *
+     * <p>La decisión que pedía justificar el enunciado: <strong>los tres errores posibles se
+     * traducen a {@code IllegalArgumentException}</strong>, porque desde fuera son el mismo
+     * problema —«ese texto no es una dirección»— y quien llama no debería tener que capturar tres
+     * excepciones distintas. El número de partes se comprueba aquí; que una parte no sea un
+     * número lo detecta {@code Integer.parseInt}; y el rango no se comprueba dos veces, porque ya
+     * lo hace el constructor canónico.
+     *
+     * @throws IllegalArgumentException si no hay cuatro partes, si alguna no es un entero o si
+     *         alguna se sale del rango
      */
     public static DireccionIpv4 desde(String texto) {
-        // -1 como límite conservaría las partes vacías finales; aquí basta el split normal,
-        // pero comprobamos explícitamente que hay exactamente cuatro partes.
         String[] partes = texto.strip().split("\\.");
         if (partes.length != 4) {
             throw new IllegalArgumentException(
                     "Se esperaban cuatro octetos separados por puntos, y llegó: " + texto);
         }
         try {
-            // El constructor canónico valida los rangos; aquí solo traducimos texto a números.
             return new DireccionIpv4(
                     Integer.parseInt(partes[0].strip()),
                     Integer.parseInt(partes[1].strip()),
@@ -66,6 +79,9 @@ public record DireccionIpv4(int primero, int segundo, int tercero, int cuarto) {
                     Integer.parseInt(partes[3].strip()));
         } catch (NumberFormatException e) {
             // Encadenamos la causa: quien depure verá también el NumberFormatException original.
+            // (NumberFormatException ya es una IllegalArgumentException, así que sin este bloque
+            // el método seguiría cumpliendo lo prometido; lo traducimos para dar un mensaje que
+            // mencione el texto completo, no solo la parte que falló.)
             throw new IllegalArgumentException("Octeto no numérico en: " + texto, e);
         }
     }
@@ -79,16 +95,47 @@ public record DireccionIpv4(int primero, int segundo, int tercero, int cuarto) {
     }
 
     /**
-     * Indica si la dirección pertenece a un rango privado (RFC 1918): 10/8, 172.16/12 y
-     * 192.168/16.
+     * Ejercicio 1.1.7. Se apoya en {@code toString}, que ya produce la forma con puntos.
      *
-     * <p>Fíjate en el rango de en medio: 172.16.0.0–172.31.255.255. Es el que concentra los
-     * errores, porque es fácil escribir {@code segundo == 16} o pasarse hasta 172.32. Los cuatro
-     * casos límite que pide probar el ejercicio 1.4.2 son exactamente los bordes de este rango.
+     * <p>Que los dos métodos devuelvan lo mismo hoy no significa que sobre uno: dicen cosas
+     * distintas. {@code toString} es «cómo se muestra esto»; {@code identificador} es «con qué
+     * nombre aparece en un inventario». Si mañana el inventario quisiera el prefijo {@code ip:},
+     * cambiaría uno y no el otro.
      */
-    public boolean esPrivada() {
-        return primero == 10
-                || (primero == 172 && segundo >= 16 && segundo <= 31)
-                || (primero == 192 && segundo == 168);
+    @Override
+    public String identificador() {
+        return toString();
+    }
+
+    /**
+     * Ejercicio 1.1.8. Orden natural de una dirección: primero el primer octeto, y a igualdad el
+     * siguiente. Es el orden lexicográfico sobre los cuatro números, que coincide con el orden
+     * numérico de la dirección de 32 bits que representan.
+     *
+     * <p>Se usa {@code Integer.compare} y no la resta que parece equivalente: con octetos, de 0 a
+     * 255, la resta nunca desborda y funcionaría, pero la costumbre de restar es la que produce el
+     * error el día que los valores son enteros cualesquiera. Ver el Error Frecuente del tema.
+     *
+     * <p>El contrato de {@code Comparable} recomienda que el orden sea coherente con la igualdad,
+     * y aquí lo es: {@code compareTo} devuelve cero exactamente cuando los cuatro octetos
+     * coinciden, que es cuando {@code equals} —el generado por el {@code record}— dice que son
+     * iguales. Esa coherencia es lo que permite meter direcciones en un {@code TreeSet} sin
+     * sorpresas.
+     */
+    @Override
+    public int compareTo(DireccionIpv4 otra) {
+        int c = Integer.compare(primero, otra.primero());
+        if (c != 0) {
+            return c;
+        }
+        c = Integer.compare(segundo, otra.segundo());
+        if (c != 0) {
+            return c;
+        }
+        c = Integer.compare(tercero, otra.tercero());
+        if (c != 0) {
+            return c;
+        }
+        return Integer.compare(cuarto, otra.cuarto());
     }
 }
